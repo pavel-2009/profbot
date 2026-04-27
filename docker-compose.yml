@@ -1,0 +1,24 @@
+services:
+  bot:
+    build: .
+    container_name: profbot
+    command: python main.py
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      DATABASE_URL: sqlite+aiosqlite:///./profbot.db
+    volumes:
+      - ./:/app
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: profbot-redis
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    ports:
+      - "6379:6379"
