@@ -1,0 +1,11 @@
+# === BOT ===
+aiogram==3.27.0
+
+# === Pydantic ===
+pydantic-settings==2.14.0
+pydantic==2.12.5
+
+# === Database ===
+alembic==1.18.4
+sqlalchemy==2.0.49
+aiosqlite==0.22.1
