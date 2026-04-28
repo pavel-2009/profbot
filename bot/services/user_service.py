@@ -52,3 +52,8 @@ class UserService:
         """Обновление баланса пользователя."""
         await self.user_repository.update_user_balance(telegram_id, amount)
         return await self.get_user_by_telegram_id(telegram_id)
+    
+    
+    async def get_user_profile(self, telegram_id: int) -> User | None:
+        """Получение профиля пользователя."""
+        return await self.user_repository.get_user_profile(telegram_id)
