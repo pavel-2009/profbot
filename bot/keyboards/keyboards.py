@@ -10,7 +10,7 @@ main_menu_keyboard = ReplyKeyboardMarkup(
          KeyboardButton(text="🛒 Магазин"),
          KeyboardButton(text="👤 Профиль")
         ],
-        [KeyboardButton(text="💰 Пополнитья"),
+        [KeyboardButton(text="💰 Пополнить"),
          KeyboardButton(text="🏆 Рейтинг"),
          KeyboardButton(text="📊 Статистика")
         ],
