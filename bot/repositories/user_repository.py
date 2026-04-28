@@ -36,7 +36,7 @@ class UserRepository:
     ) -> User:
         """Создание нового пользователя."""
         referral_code = await self._generate_referral_code()
-        start_balance = REGISTRATION_BONUS + (REFERRAL_BONUS if invited_by else 0)
+        start_balance = REGISTRATION_BONUS
 
         try:
             new_user = User(
@@ -52,6 +52,7 @@ class UserRepository:
             self.session.add(new_user)
 
             if invited_by:
+                new_user.balance += REFERRAL_BONUS
                 await self.session.execute(
                     update(User)
                     .where(User.telegram_id == invited_by)
