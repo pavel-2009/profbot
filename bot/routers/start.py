@@ -2,8 +2,7 @@
 
 import logging
 from aiogram import Router, types
-from aiogram.filters import CommandStart
-from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.filters import CommandStart, CommandObject
 
 from bot.services.user_service import UserService
 from bot.dependencies import get_user_service
@@ -16,7 +15,7 @@ router = Router()
 
 
 @router.message(CommandStart())    
-async def start(message: types.Message) -> None:
+async def start(message: types.Message, command: CommandObject) -> None:
     """Обработчик команды /start."""
     
     try:
@@ -29,6 +28,26 @@ async def start(message: types.Message) -> None:
                     await message.answer("Вы уже зарегистрированы!", reply_markup=main_menu_keyboard)
                     return
                 
+                # Проверяем наличие реферального кода в аргументах команды
+                referral_code = command.args if command.args else None
+                
+                if referral_code:
+                    
+                    referrer = await user_service.get_user_by_referral_code(referral_code)
+                    
+                    if referrer is None:
+                        logger.warning(f"Invalid referral code '{referral_code}' used by user {message.from_user.id}")
+                        await message.answer("Неверный реферальный код.")
+                        return
+                        
+                    elif referrer.telegram_id == message.from_user.id:
+                        logger.warning(f"User {message.from_user.id} attempted to use their own referral code")
+                        await message.answer("Вы не можете использовать свой собственный реферальный код. Регистрация без реферала.", reply_markup=main_menu_keyboard)
+                        return
+                    
+                    else:
+                        logger.info(f"User {message.from_user.id} referred by user {referrer.telegram_id} with code '{referral_code}'")
+                
                 telegram_id = message.from_user.id
                 username = message.from_user.username or f"user_{telegram_id}"
                 first_name = message.from_user.first_name or "Пользователь"
@@ -39,7 +58,7 @@ async def start(message: types.Message) -> None:
                     username=username,
                     first_name=first_name,
                     last_name=last_name,
-                    invited_by=None
+                    invited_by=referrer.telegram_id if referrer else None
                 )
                 await message.answer(
                     f"""👋 Добро пожаловать, {first_name}!\n\n
