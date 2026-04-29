@@ -3,8 +3,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.models.transaction import Transaction
-from bot.models.user import User
 from bot.models.statistics import Statistics
 
 
@@ -21,6 +19,13 @@ class StatisticsRepository:
             select(Statistics).where(Statistics.user_id == user_id)
         )
         return result.scalars().first()
+
+    async def create_statistics(self, user_id: int) -> Statistics:
+        """Создать запись статистики пользователя."""
+        stats = Statistics(user_id=user_id)
+        self.session.add(stats)
+        await self.session.flush()
+        return stats
     
     
     async def update_invited_users(self, user_id: int, invited_users: int) -> Statistics | None:

@@ -35,9 +35,23 @@ class ShopService:
             return False
 
         await self.user_repository.update_user_balance(user_id, -product.price)
-        await self.transaction_repository.add_transaction(user_id=user_id, amount=product.price, description=f"Покупка товара: {product.name}")
-        await self.statistics_repository.update_spent_crystals(user_id, product.price)
-        
+        user = await self.user_repository.get_user_by_telegram_id(user_id)
+        if user is None:
+            return False
+
+        await self.transaction_repository.add_transaction(
+            user_id=user_id,
+            amount=-product.price,
+            balance_after=user.balance,
+            reason=f"Покупка товара: {product.name}",
+        )
+
+        stats = await self.statistics_repository.get_statistics_by_user_id(user_id)
+        if stats is not None:
+            stats.spent_crystals += product.price
+            stats.transactions += 1
+            await self.statistics_repository.session.commit()
+
         return True
 
     

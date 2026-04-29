@@ -1,6 +1,6 @@
 """Репозиторий для работы с транзакциями."""
 
-from sqlalchemy import select, update, delete, insert
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.transaction import Transaction
@@ -25,9 +25,14 @@ class TransactionRepository:
         return result.scalars().all()
     
     
-    async def add_transaction(self, user_id: int, amount: int, description: str) -> Transaction:
+    async def add_transaction(self, user_id: int, amount: int, balance_after: int, reason: str) -> Transaction:
         """Добавить новую транзакцию в базу данных."""
-        new_transaction = Transaction(user_id=user_id, amount=amount, description=description)
+        new_transaction = Transaction(
+            user_id=user_id,
+            amount=amount,
+            balance_after=balance_after,
+            reason=reason,
+        )
         self.session.add(new_transaction)
         await self.session.commit()
         await self.session.refresh(new_transaction)
