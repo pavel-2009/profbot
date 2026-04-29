@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.core.redis import get_redis
 from bot.models.user import User
 from bot.schemas import TransactionSchema, UserProfileSchema, UserStatsSchema
+from bot.repositories.statistics_repository import StatisticsRepository
+from bot.repositories.transaction_repository import TransactionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,8 @@ class UserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.redis: Redis = get_redis()
+        self.statistics_repository = StatisticsRepository(session)
+        self.transaction_repository = TransactionRepository(session)
 
     async def create_user(
         self,
@@ -108,6 +112,15 @@ class UserRepository:
             transactions=transactions,
             referral_link=f"https://t.me/ProfBot?start={user.referral_code}",
         )
+        
+    async def check_user_balance(self, telegram_id: int, amount: int) -> bool:
+        """Проверка баланса пользователя."""
+        user = await self.get_user_by_telegram_id(telegram_id)
+        
+        if not user:
+            return False
+        
+        return user.balance >= amount
 
     async def _generate_referral_code(self, max_retries: int = 10) -> str:
         """Генерация уникального реферального кода."""
@@ -134,38 +147,40 @@ class UserRepository:
 
     async def _get_user_stats(self, telegram_id: int) -> UserStatsSchema:
         """Получение статистики пользователя."""
-        invited_users_result = await self.session.execute(
-            select(func.count()).select_from(User).where(User.invited_by == telegram_id)
-        )
-        invited_users = invited_users_result.scalar_one()
-
-        spent_crystals = 0
-        transactions_count = 1 + (1 if invited_users > 0 else 0)
-
+        statistics = await self.statistics_repository.get_statistics_by_user_id(telegram_id)
+        
+        if statistics is None:
+            return UserStatsSchema(
+                invited_users=0,
+                earned_crystals_via_referrals=0,
+                spent_crystals=0,
+                transactions=0,
+            )
+            
+        invited_users = statistics.invited_users or 0
+        earned_crystals_via_referrals = statistics.earned_crystals_via_referrals or 0
+        spent_crystals = statistics.spent_crystals or 0
+        transactions_count = statistics.transactions or 0
+        
         return UserStatsSchema(
             invited_users=invited_users,
-            earned_crystals_via_referrals=invited_users * REFERRAL_BONUS,
+            earned_crystals_via_referrals=earned_crystals_via_referrals,
             spent_crystals=spent_crystals,
             transactions=transactions_count,
         )
 
     async def _get_user_transactions(self, user: User) -> list[TransactionSchema]:
         """Получение истории транзакций пользователя."""
-        transactions: list[TransactionSchema] = [
-            TransactionSchema(
-                date=user.registered_at.strftime("%Y-%m-%d"),
-                amount=REGISTRATION_BONUS,
-                description="Бонус за регистрацию",
-            )
-        ]
-
-        if user.invited_by:
-            transactions.append(
+        transactions = await self.transaction_repository.get_transactions_by_user_id(user.telegram_id)
+        
+        result = []
+        for transaction in transactions:
+            result.append(
                 TransactionSchema(
-                    date=user.registered_at.strftime("%Y-%m-%d"),
-                    amount=REFERRAL_BONUS,
-                    description="Реферальный бонус",
+                    date=transaction.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    amount=transaction.amount,
+                    description=transaction.reason,
                 )
             )
 
-        return transactions
+        return result

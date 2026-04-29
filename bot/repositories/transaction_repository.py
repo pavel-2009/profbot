@@ -21,7 +21,7 @@ class TransactionRepository:
     
     async def get_transactions_by_user_id(self, user_id: int) -> list[Transaction]:
         """Получить список транзакций для конкретного пользователя."""
-        result = await self.session.execute(select(Transaction).where(Transaction.user_id == user_id).order_by(Transaction.date.desc()))
+        result = await self.session.execute(select(Transaction).where(Transaction.user_id == user_id).order_by(Transaction.created_at.desc()))
         return result.scalars().all()
     
     

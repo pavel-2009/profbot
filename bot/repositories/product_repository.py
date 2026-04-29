@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.product import Product
+from bot.core.config import config
 
 
 class ProductRepository:
@@ -19,10 +20,13 @@ class ProductRepository:
         return result.scalars().first()
     
     
-    async def get_all_products(self) -> list[Product]:
+    async def get_all_products(self) -> list[list[Product]]:
         """Получить список всех товаров."""
-        result = await self.session.execute(select(Product))
-        return result.scalars().all()
+        result = await self.session.execute(select(Product).where(Product.is_active.is_(True)).order_by(Product.id))
+        products = result.scalars().all()
+        page_size = config.SHOP_LIST_PAGINATION_SIZE
+
+        return [products[index:index + page_size] for index in range(0, len(products), page_size)]
     
     
     async def add_product(self, name: str, description: str, price: int) -> Product:

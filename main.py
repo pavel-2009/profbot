@@ -7,7 +7,10 @@ from aiogram import Bot, Dispatcher
 from bot.core.db import Base, engine
 from bot.core.config import config
 # Импортируем модели, чтобы они зарегистрировались в Base.metadata
+from bot.models.product import Product
 from bot.models.user import User
+from bot.models.statistics import Statistics
+from bot.models.transaction import Transaction
 
 # Конфигурируем логирование
 logging.basicConfig(
@@ -37,9 +40,11 @@ async def main() -> None:
     # Регистрируем роутеры
     from bot.routers.start import router as start_router  
     from bot.routers.profile import router as profile_router
+    from bot.routers.shop import router as shop_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
+    dispatcher.include_router(shop_router)
     logger.info("Routers registered")
     
     # Запускаем бота

@@ -1,0 +1,76 @@
+Date : 2026-04-29 19:34:59
+Directory : d:\ITWork\profbot
+Total : 36 files,  1002 codes, 122 comments, 384 blanks, all 1508 lines
+
+Languages
++------------------+------------+------------+------------+------------+------------+
+| language         | files      | code       | comment    | blank      | total      |
++------------------+------------+------------+------------+------------+------------+
+| Python           |         30 |        705 |        119 |        293 |      1,117 |
+| Markdown         |          2 |        138 |          0 |         54 |        192 |
+| Ini              |          1 |        123 |          0 |         27 |        150 |
+| YAML             |          1 |         23 |          0 |          2 |         25 |
+| pip requirements |          1 |          7 |          3 |          3 |         13 |
+| Docker           |          1 |          6 |          0 |          5 |         11 |
++------------------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                         | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                            |         36 |      1,002 |        122 |        384 |      1,508 |
+| . (Files)                                                    |          7 |        331 |         11 |        104 |        446 |
+| alembic                                                      |          1 |         36 |         29 |         17 |         82 |
+| bot                                                          |         28 |        635 |         82 |        263 |        980 |
+| bot (Files)                                                  |          3 |         31 |          8 |         21 |         60 |
+| bot\core                                                     |          4 |         31 |          7 |         26 |         64 |
+| bot\fsm                                                      |          2 |          0 |          1 |          2 |          3 |
+| bot\keyboards                                                |          2 |         24 |          3 |          7 |         34 |
+| bot\models                                                   |          5 |         59 |         10 |         36 |        105 |
+| bot\repositories                                             |          5 |        255 |         31 |         88 |        374 |
+| bot\routers                                                  |          4 |        176 |         10 |         55 |        241 |
+| bot\services                                                 |          3 |         59 |         12 |         28 |         99 |
++--------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| filename                                                     | language         | code       | comment    | blank      | total      |
++--------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| d:\ITWork\profbot\Dockerfile                                 | Docker           |          6 |          0 |          5 |         11 |
+| d:\ITWork\profbot\PLAN.md                                    | Markdown         |         78 |          0 |         27 |        105 |
+| d:\ITWork\profbot\REVIEW.md                                  | Markdown         |         60 |          0 |         27 |         87 |
+| d:\ITWork\profbot\alembic.ini                                | Ini              |        123 |          0 |         27 |        150 |
+| d:\ITWork\profbot\alembic\env.py                             | Python           |         36 |         29 |         17 |         82 |
+| d:\ITWork\profbot\bot\__init__.py                            | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\core\__init__.py                       | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\core\config.py                         | Python           |         13 |          2 |         10 |         25 |
+| d:\ITWork\profbot\bot\core\db.py                             | Python           |         10 |          3 |         10 |         23 |
+| d:\ITWork\profbot\bot\core\redis.py                          | Python           |          8 |          2 |          5 |         15 |
+| d:\ITWork\profbot\bot\dependencies.py                        | Python           |         12 |          4 |          9 |         25 |
+| d:\ITWork\profbot\bot\fsm\__init__.py                        | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\fsm\fsm.py                             | Python           |          0 |          1 |          1 |          2 |
+| d:\ITWork\profbot\bot\keyboards\__init__.py                  | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\keyboards\keyboards.py                 | Python           |         24 |          3 |          6 |         33 |
+| d:\ITWork\profbot\bot\models\__init__.py                     | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\models\product.py                      | Python           |         17 |          3 |         12 |         32 |
+| d:\ITWork\profbot\bot\models\statistics.py                   | Python           |         12 |          2 |          8 |         22 |
+| d:\ITWork\profbot\bot\models\transaction.py                  | Python           |         11 |          2 |          8 |         21 |
+| d:\ITWork\profbot\bot\models\user.py                         | Python           |         19 |          3 |          7 |         29 |
+| d:\ITWork\profbot\bot\repositories\__init__.py               | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\repositories\product_repository.py     | Python           |         41 |          7 |         20 |         68 |
+| d:\ITWork\profbot\bot\repositories\statistics_repository.py  | Python           |         45 |          7 |         20 |         72 |
+| d:\ITWork\profbot\bot\repositories\transaction_repository.py | Python           |         25 |          6 |         15 |         46 |
+| d:\ITWork\profbot\bot\repositories\user_repository.py        | Python           |        144 |         11 |         32 |        187 |
+| d:\ITWork\profbot\bot\routers\__init__.py                    | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\routers\profile.py                     | Python           |         51 |          2 |         14 |         67 |
+| d:\ITWork\profbot\bot\routers\shop.py                        | Python           |         62 |          6 |         25 |         93 |
+| d:\ITWork\profbot\bot\routers\start.py                       | Python           |         63 |          2 |         15 |         80 |
+| d:\ITWork\profbot\bot\schemas.py                             | Python           |         19 |          4 |         11 |         34 |
+| d:\ITWork\profbot\bot\services\__init__.py                   | Python           |          0 |          0 |          1 |          1 |
+| d:\ITWork\profbot\bot\services\shop_service.py               | Python           |         25 |          4 |         15 |         44 |
+| d:\ITWork\profbot\bot\services\user_service.py               | Python           |         34 |          8 |         12 |         54 |
+| d:\ITWork\profbot\docker-compose.yml                         | YAML             |         23 |          0 |          2 |         25 |
+| d:\ITWork\profbot\main.py                                    | Python           |         34 |          8 |         13 |         55 |
+| d:\ITWork\profbot\requirements.txt                           | pip requirements |          7 |          3 |          3 |         13 |
+| Total                                                        |                  |      1,002 |        122 |        384 |      1,508 |
++--------------------------------------------------------------+------------------+------------+------------+------------+------------+

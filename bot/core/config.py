@@ -8,9 +8,12 @@ class Config(BaseSettings):
 
     BOT_TOKEN: str | None = None
     DATABASE_URL: str = "sqlite+aiosqlite:///./profbot.db"
+    
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
+    
+    SHOP_LIST_PAGINATION_SIZE: int = 5
 
     model_config = {
         "env_file": ".env",
