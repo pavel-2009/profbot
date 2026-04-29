@@ -87,6 +87,15 @@ async def shop_page(callback: types.CallbackQuery) -> None:
 
 @router.callback_query(F.data.startswith("shop_buy:"))
 async def shop_buy(callback: types.CallbackQuery) -> None:
-    """Заглушка под будущую покупку товара."""
+    """Покупка товара."""
     product_id = int(callback.data.split(":")[1])
-    await callback.answer(f"Товар #{product_id} выбран", show_alert=True)
+
+    async with async_session_factory() as session:
+        shop_service = get_shop_service(session)
+        success = await shop_service.buy_product(callback.from_user.id, product_id)
+
+    if success:
+        await callback.answer("Покупка успешна!", show_alert=True)
+        return
+
+    await callback.answer("Не удалось купить товар: недостаточно средств или товар недоступен.", show_alert=True)

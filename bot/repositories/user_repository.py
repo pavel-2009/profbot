@@ -54,6 +54,8 @@ class UserRepository:
                 invited_by=invited_by,
             )
             self.session.add(new_user)
+            await self.session.flush()
+            await self.statistics_repository.create_statistics(new_user.telegram_id)
 
             if invited_by:
                 new_user.balance += REFERRAL_BONUS
@@ -62,6 +64,10 @@ class UserRepository:
                     .where(User.telegram_id == invited_by)
                     .values(balance=User.balance + REFERRAL_BONUS)
                 )
+                referrer_stats = await self.statistics_repository.get_statistics_by_user_id(invited_by)
+                if referrer_stats is not None:
+                    referrer_stats.invited_users += 1
+                    referrer_stats.earned_crystals_via_referrals += REFERRAL_BONUS
 
             await self.session.commit()
             await self.session.refresh(new_user)
