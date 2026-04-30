@@ -66,6 +66,9 @@ async def user_statistics(event: types.Message | types.CallbackQuery) -> None:
     spent_total = sum(abs(min(t.amount, 0)) for t in all_transactions)
     conversion = int((profile.stats.active_invited_users / profile.stats.invited_users) * 100) if profile.stats.invited_users else 0
     most_common_reason = all_transactions[0].reason if all_transactions else "—"
+    
+    referrals_stats = await user_service.get_referrals_stats(user_id)
+    total_referrals, active_referrals, conversion = referrals_stats
 
     text = (
         "📊 ВАША СТАТИСТИКА\n\n"
@@ -78,8 +81,8 @@ async def user_statistics(event: types.Message | types.CallbackQuery) -> None:
         f"- Заработано всего: {earned_total} 🔮\n"
         f"- Потрачено: {spent_total} 🔮\n\n"
         "Рефералы:\n"
-        f"- Приглашено: {profile.stats.invited_users}\n"
-        f"- Активных: {profile.stats.active_invited_users} (за 7 дней)\n"
+        f"- Приглашено: {total_referrals}\n"
+        f"- Активных: {active_referrals} (за 7 дней)\n"
         f"- Конверсия: {conversion}%\n\n"
         "Магазин:\n"
         f"- Покупок: {profile.stats.transactions}\n"

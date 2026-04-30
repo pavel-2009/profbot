@@ -1,9 +1,10 @@
 """Миддлварь для базового подсчёта активности пользователя."""
 
-from typing import Any, Awaitable, Callable
-
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
+
+from typing import Any, Awaitable, Callable
+from datetime import datetime
 
 from bot.core.db import async_session_factory
 from bot.repositories.statistics_repository import StatisticsRepository
@@ -27,6 +28,7 @@ class StatisticsMiddleware(BaseMiddleware):
                     increments = {"active_sessions": 1}
                     if self._is_command_event(event):
                         increments["commands_executed"] = 1
+                    increments["last_activity"] = datetime.utcnow()  # Обновляем время последней активности
                     await repository.increment_fields(user.id, **increments)
                     await session.commit()
         return await handler(event, data)

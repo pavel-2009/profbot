@@ -12,6 +12,7 @@ class UserService:
 
     def __init__(self, session: AsyncSession):
         self.user_repository = UserRepository(session)
+        self.statistics_repository = self.user_repository.statistics_repository
 
     async def register_user(
         self,
@@ -60,3 +61,7 @@ class UserService:
     async def get_invited_users(self, telegram_id: int) -> list[UserProfileSchema]:
         """Получение списка пользователей, приглашенных данным пользователем."""
         return await self.user_repository.get_invited_users(telegram_id)
+    
+    async def get_referrals_stats(self, telegram_id: int) -> tuple[int, int, int]:
+        """Получение статистики по рефералам пользователя."""
+        return await self.statistics_repository.get_referrals(telegram_id)

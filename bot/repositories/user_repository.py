@@ -140,11 +140,12 @@ class UserRepository:
 
     async def _get_user_stats(self, telegram_id: int) -> UserStatsSchema:
         statistics = await self.statistics_repository.get_statistics_by_user_id(telegram_id)
+        referral_stats = await self.statistics_repository.get_referrals(telegram_id)
         if statistics is None:
             return UserStatsSchema()
         return UserStatsSchema(
-            invited_users=statistics.invited_users or 0,
-            active_invited_users=statistics.active_invited_users or 0,
+            invited_users=referral_stats[0],
+            active_invited_users=referral_stats[1],
             active_sessions=statistics.active_sessions or 0,
             commands_executed=statistics.commands_executed or 0,
             earned_crystals_via_referrals=statistics.earned_crystals_via_referrals or 0,
