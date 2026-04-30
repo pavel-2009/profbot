@@ -5,7 +5,6 @@ from aiogram.filters import Command
 
 from bot.core.db import async_session_factory
 from bot.dependencies import get_user_service
-from bot.repositories.statistics_repository import StatisticsRepository
 from bot.services.user_service import UserService
 
 router = Router()
@@ -16,8 +15,6 @@ router = Router()
 async def referral_handler(message: types.Message) -> None:
     async with async_session_factory() as session:
         user_service: UserService = get_user_service(session)
-        await StatisticsRepository(session).increment_fields(message.from_user.id, active_sessions=1, commands_executed=1)
-        await session.commit()
 
         user = await user_service.get_user_by_telegram_id(message.from_user.id)
         if not user:

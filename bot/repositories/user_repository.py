@@ -5,7 +5,7 @@ import random
 import string
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.user import User
@@ -118,6 +118,18 @@ class UserRepository:
             transactions=await self._get_user_transactions(user),
             referral_link=f"https://t.me/ProfBot?start={user.referral_code}",
         )
+
+    async def get_top_users_by_balance(self, limit: int = 10) -> list[User]:
+        result = await self.session.execute(select(User).order_by(User.balance.desc()).limit(limit))
+        return result.scalars().all()
+
+    async def get_user_rank_by_balance(self, telegram_id: int) -> int | None:
+        user = await self.get_user_by_telegram_id(telegram_id)
+        if user is None:
+            return None
+        result = await self.session.execute(select(func.count()).where(User.balance > user.balance))
+        higher_balance_count = result.scalar_one()
+        return higher_balance_count + 1
 
     async def _generate_referral_code(self, max_retries: int = 10) -> str:
         for _ in range(max_retries):
