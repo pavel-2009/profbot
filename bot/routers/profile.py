@@ -9,7 +9,6 @@ from bot.core.db import async_session_factory
 from bot.dependencies import get_user_service
 from bot.keyboards.keyboards import profile_keyboard
 from bot.services.user_service import UserService
-from bot.repositories.statistics_repository import StatisticsRepository
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,6 @@ async def user_profile(message: types.Message) -> None:
     try:
         async with async_session_factory() as session:
             user_service: UserService = get_user_service(session)
-            await StatisticsRepository(session).increment_fields(message.from_user.id, active_sessions=1, commands_executed=1)
             user = await user_service.get_user_by_telegram_id(message.from_user.id)
 
             if user is None:

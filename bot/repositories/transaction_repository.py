@@ -1,5 +1,7 @@
 """Репозиторий для работы с транзакциями."""
 
+from datetime import datetime, timedelta
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +39,16 @@ class TransactionRepository:
         await self.session.commit()
         await self.session.refresh(new_transaction)
         return new_transaction
+
+    async def get_transactions_by_user_for_days(self, user_id: int, days: int) -> list[Transaction]:
+        """Получить транзакции пользователя за последние N дней."""
+        date_from = datetime.utcnow() - timedelta(days=days)
+        result = await self.session.execute(
+            select(Transaction)
+            .where(Transaction.user_id == user_id, Transaction.created_at >= date_from)
+            .order_by(Transaction.created_at.asc())
+        )
+        return result.scalars().all()
     
     
     async def delete_transaction(self, transaction_id: int) -> bool:

@@ -9,7 +9,6 @@ from bot.core.db import async_session_factory
 from bot.dependencies import get_user_service
 from bot.keyboards.keyboards import main_menu_keyboard
 from bot.services.user_service import UserService
-from bot.repositories.statistics_repository import StatisticsRepository
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ async def start(message: types.Message, command: CommandObject) -> None:
     try:
         async with async_session_factory() as session:
             user_service: UserService = get_user_service(session)
-            await StatisticsRepository(session).increment_fields(message.from_user.id, active_sessions=1, commands_executed=1)
 
             if await user_service.user_exists(message.from_user.id):
                 logger.info(f"User {message.from_user.id} already registered")

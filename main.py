@@ -11,6 +11,7 @@ from bot.models.product import Product
 from bot.models.user import User
 from bot.models.statistics import Statistics
 from bot.models.transaction import Transaction
+from bot.middlewares.statistics import StatisticsMiddleware
 
 # Конфигурируем логирование
 logging.basicConfig(
@@ -36,6 +37,8 @@ async def main() -> None:
     # Инициализация бота и диспетчера
     bot = Bot(token=config.BOT_TOKEN)
     dispatcher = Dispatcher()
+    dispatcher.message.middleware(StatisticsMiddleware())
+    dispatcher.callback_query.middleware(StatisticsMiddleware())
     
     # Регистрируем роутеры
     from bot.routers.start import router as start_router  
@@ -43,12 +46,14 @@ async def main() -> None:
     from bot.routers.shop import router as shop_router
     from bot.routers.referral import router as referral_router
     from bot.routers.menu import router as menu_router
+    from bot.routers.statistics import router as statistics_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
     dispatcher.include_router(shop_router)
     dispatcher.include_router(referral_router)
     dispatcher.include_router(menu_router)
+    dispatcher.include_router(statistics_router)
     logger.info("Routers registered")
     
     # Запускаем бота
