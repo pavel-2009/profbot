@@ -31,26 +31,27 @@ class ShopService:
         if not product:
             return False
         
-        if not await self.user_repository.check_user_balance(user_id, product.price):
-            return False
-
-        await self.user_repository.update_user_balance(user_id, -product.price)
-        user = await self.user_repository.get_user_by_telegram_id(user_id)
-        if user is None:
-            return False
-
-        await self.transaction_repository.add_transaction(
-            user_id=user_id,
-            amount=-product.price,
-            balance_after=user.balance,
-            reason=f"Покупка товара: {product.name}",
-        )
-
-        stats = await self.statistics_repository.get_statistics_by_user_id(user_id)
-        if stats is not None:
-            stats.spent_crystals += product.price
-            stats.transactions += 1
-            await self.statistics_repository.session.commit()
+        # Для предотвращения гонок при покупке, блокируем пользователя на время транзакции
+        async with self.user_repository.lock_user(user_id):
+            # Получаем актуальный баланс пользователя
+            user = await self.user_repository.get_user_by_telegram_id(user_id)
+            if not user or user.balance < product.price:
+                return False
+            
+            # Списываем деньги с пользователя
+            await self.user_repository.update_user_balance(user_id, -product.price)
+            
+            # Добавляем транзакцию
+            await self.transaction_repository.add_transaction(
+                user_id=user_id,
+                amount=-product.price,
+                balance_after=user.balance - product.price,
+                reason=f"Покупка товара: {product.name}"
+            )
+            
+            # Обновляем статистику
+            await self.statistics_repository.update_spent_crystals(user_id, product.price)
+            await self.statistics_repository.update_transactions(user_id, 1)
 
         return True
 

@@ -45,9 +45,19 @@ class UserService:
 
     async def update_user_balance(self, telegram_id: int, amount: int) -> User | None:
         """Обновление баланса пользователя."""
-        await self.user_repository.update_user_balance(telegram_id, amount)
+        async with self.user_repository.lock_user(telegram_id):
+            await self.user_repository.update_user_balance(telegram_id, amount)
+
         return await self.get_user_by_telegram_id(telegram_id)
 
     async def get_user_profile(self, telegram_id: int) -> UserProfileSchema | None:
         """Получение профиля пользователя."""
         return await self.user_repository.get_user_profile(telegram_id)
+    
+    async def get_user_referral(self, telegram_id: int) -> str:
+        """Получение реферальной ссылки пользователя."""
+        return await self.user_repository.get_user_referral(telegram_id)
+    
+    async def get_invited_users(self, telegram_id: int) -> list[UserProfileSchema]:
+        """Получение списка пользователей, приглашенных данным пользователем."""
+        return await self.user_repository.get_invited_users(telegram_id)

@@ -41,10 +41,14 @@ async def main() -> None:
     from bot.routers.start import router as start_router  
     from bot.routers.profile import router as profile_router
     from bot.routers.shop import router as shop_router
+    from bot.routers.referral import router as referral_router
+    from bot.routers.menu import router as menu_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
     dispatcher.include_router(shop_router)
+    dispatcher.include_router(referral_router)
+    dispatcher.include_router(menu_router)
     logger.info("Routers registered")
     
     # Запускаем бота

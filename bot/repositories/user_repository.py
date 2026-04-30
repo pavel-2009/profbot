@@ -1,13 +1,15 @@
 """Репозиторий для работы с пользователями."""
 
+from redis import Redis
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import logging
 import random
 import string
 from datetime import datetime
-
-from redis import Redis
-from sqlalchemy import func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
+import asyncio
 
 from bot.core.redis import get_redis
 from bot.models.user import User
@@ -55,19 +57,30 @@ class UserRepository:
             )
             self.session.add(new_user)
             await self.session.flush()
+
             await self.statistics_repository.create_statistics(new_user.telegram_id)
 
             if invited_by:
-                new_user.balance += REFERRAL_BONUS
-                await self.session.execute(
-                    update(User)
-                    .where(User.telegram_id == invited_by)
-                    .values(balance=User.balance + REFERRAL_BONUS)
-                )
-                referrer_stats = await self.statistics_repository.get_statistics_by_user_id(invited_by)
-                if referrer_stats is not None:
-                    referrer_stats.invited_users += 1
-                    referrer_stats.earned_crystals_via_referrals += REFERRAL_BONUS
+                
+                async with self.lock_user(invited_by):
+                    
+                    async with self.lock_user(telegram_id):
+                        
+                        await self.update_user_balance(telegram_id, REFERRAL_BONUS)
+                        await self.update_user_balance(invited_by, REFERRAL_BONUS)
+                        
+                        referrer_stats = await self.statistics_repository.get_statistics_by_user_id(invited_by)
+                        
+                        if referrer_stats is not None:
+                            await self.statistics_repository.update_earned_crystals_via_referrals(invited_by, REFERRAL_BONUS)
+                            await self.statistics_repository.update_invited_users(invited_by, 1)
+                            
+                        await self.transaction_repository.add_transaction(
+                            user_id=invited_by,
+                            amount=REFERRAL_BONUS,
+                            balance_after=referrer_stats.earned_crystals_via_referrals + REFERRAL_BONUS if referrer_stats else REFERRAL_BONUS,
+                            reason=f"Реферальный бонус за приглашение пользователя {telegram_id}"
+                        )
 
             await self.session.commit()
             await self.session.refresh(new_user)
@@ -98,6 +111,42 @@ class UserRepository:
             .values(balance=User.balance + amount)
         )
         await self.session.commit()
+        
+    async def get_user_referral(self, telegram_id: int) -> str:
+        """Получение реферальной ссылки пользователя."""
+        user = await self.get_user_by_telegram_id(telegram_id)
+        if not user:
+            return ""
+        return f"https://t.me/ProfBot?start={user.referral_code}"
+    
+    async def get_invited_users(self, telegram_id: int) -> list[UserProfileSchema]:
+        """Получение списка пользователей, приглашенных данным пользователем."""
+        result = await self.session.execute(
+            select(User).where(User.invited_by == telegram_id)
+        )
+        invited_users = result.scalars().all()
+        
+        profiles = []
+        for user in invited_users:
+            stats = await self.statistics_repository.get_statistics_by_user_id(user.telegram_id)
+            profiles.append(
+                UserProfileSchema(
+                    telegram_id=user.telegram_id,
+                    name=user.first_name,
+                    username=f"@{user.username}",
+                    registration_date=user.registered_at.strftime("%Y-%m-%d"),
+                    balance=user.balance,
+                    stats=UserStatsSchema(
+                        invited_users=stats.invited_users if stats else 0,
+                        earned_crystals_via_referrals=stats.earned_crystals_via_referrals if stats else 0,
+                        spent_crystals=stats.spent_crystals if stats else 0,
+                        transactions=stats.transactions if stats else 0,
+                    ),
+                    referral_link=f"https://t.me/ProfBot?start={user.referral_code}",
+                )
+            )
+
+        return profiles
 
     async def get_user_profile(self, telegram_id: int) -> UserProfileSchema | None:
         """Получение профиля пользователя."""
@@ -127,6 +176,21 @@ class UserRepository:
             return False
         
         return user.balance >= amount
+
+
+    @asynccontextmanager
+    async def lock_user(self, telegram_id: int):
+        """Контекстный менеджер для блокировки пользователя."""
+        lock_key = f"user_lock:{telegram_id}"
+        try:
+            while True:
+                if self.redis.set(lock_key, "1", nx=True, ex=5):
+                    break
+                await asyncio.sleep(0.1)
+            yield
+        finally:
+            self.redis.delete(lock_key)
+    
 
     async def _generate_referral_code(self, max_retries: int = 10) -> str:
         """Генерация уникального реферального кода."""
