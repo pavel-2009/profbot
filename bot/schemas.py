@@ -15,6 +15,9 @@ class UserStatsSchema(BaseModel):
     """Схема статистики пользователя."""
 
     invited_users: int = Field(default=0)
+    active_invited_users: int = Field(default=0)
+    active_sessions: int = Field(default=0)
+    commands_executed: int = Field(default=0)
     earned_crystals_via_referrals: int = Field(default=0)
     spent_crystals: int = Field(default=0)
     transactions: int = Field(default=0)

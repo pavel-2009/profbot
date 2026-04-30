@@ -17,3 +17,18 @@ async def main_menu(message: types.Message) -> None:
         "📚 Добро пожаловать в главное меню! Выберите раздел, который вас интересует.",
         reply_markup=main_menu_keyboard,
     )
+
+
+@router.message(Command("help"))
+@router.message(F.text == "❓ Помощь")
+async def help_command(message: types.Message) -> None:
+    """Показать список доступных команд."""
+    await message.answer(
+        "❓ Команды:\n"
+        "/start — регистрация\n"
+        "/profile — профиль\n"
+        "/shop — магазин\n"
+        "/referral — рефералка\n"
+        "/help — помощь",
+        reply_markup=main_menu_keyboard,
+    )

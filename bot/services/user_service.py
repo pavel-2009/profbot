@@ -43,12 +43,11 @@ class UserService:
         """Получение пользователя по Telegram ID."""
         return await self.user_repository.get_user_by_telegram_id(telegram_id)
 
-    async def update_user_balance(self, telegram_id: int, amount: int) -> User | None:
-        """Обновление баланса пользователя."""
-        async with self.user_repository.lock_user(telegram_id):
-            await self.user_repository.update_user_balance(telegram_id, amount)
-
-        return await self.get_user_by_telegram_id(telegram_id)
+    async def apply_balance_transaction(self, telegram_id: int, amount: int, reason: str) -> User | None:
+        """Единая операция изменения баланса."""
+        result = await self.user_repository.apply_balance_transaction(telegram_id, amount, reason)
+        await self.user_repository.session.commit()
+        return result
 
     async def get_user_profile(self, telegram_id: int) -> UserProfileSchema | None:
         """Получение профиля пользователя."""
