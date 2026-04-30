@@ -1,5 +1,7 @@
 """Роутер для получения реферальной ссылки."""
 
+from collections.abc import Callable, Awaitable
+
 from aiogram import F, Router, types
 from aiogram.filters import Command
 
@@ -11,14 +13,19 @@ router = Router()
 
 
 @router.message(Command("referral"))
+@router.message(F.text == "🔗 Рефералка")
 @router.message(F.text == "🔗 Реферальная ссылка")
 async def referral_handler(message: types.Message) -> None:
+    await _send_referral_info(message.from_user.id, message.answer)
+
+
+async def _send_referral_info(user_id: int, answer: Callable[[str], Awaitable[types.Message]]) -> None:
     async with async_session_factory() as session:
         user_service: UserService = get_user_service(session)
 
-        user = await user_service.get_user_by_telegram_id(message.from_user.id)
+        user = await user_service.get_user_by_telegram_id(user_id)
         if not user:
-            await message.answer("Вы не зарегистрированы в системе.")
+            await answer("Вы не зарегистрированы в системе.")
             return
 
         referral_link = await user_service.get_user_referral(user.telegram_id)
@@ -28,7 +35,7 @@ async def referral_handler(message: types.Message) -> None:
         active_invited = user_stats.stats.active_invited_users if user_stats else 0
         conversion = int((active_invited / invited_count) * 100) if invited_count else 0
 
-        await message.answer(
+        await answer(
             f"🔗 ВАША РЕФЕРАЛЬНАЯ ССЫЛКА:\n\n{referral_link}\n\n"
             "За каждого приглашённого друга вы получите 🔮 50 кристаллов.\n"
             "Друг также получит 🔮 50 кристаллов при регистрации.\n\n"
@@ -37,3 +44,10 @@ async def referral_handler(message: types.Message) -> None:
             f"Конверсия: {conversion}%\n"
             f"Заработано: {earned_crystals} кристаллов"
         )
+
+
+@router.callback_query(F.data == "referral_link")
+async def referral_callback_handler(callback: types.CallbackQuery) -> None:
+    """Показ реферальной ссылки из inline-кнопки профиля."""
+    await _send_referral_info(callback.from_user.id, callback.message.answer)
+    await callback.answer()
