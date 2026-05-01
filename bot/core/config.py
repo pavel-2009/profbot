@@ -14,6 +14,8 @@ class Config(BaseSettings):
     REDIS_DB: int = 0
     
     SHOP_LIST_PAGINATION_SIZE: int = 5
+    
+    ADMINS: list[int] = []
 
     model_config = {
         "env_file": ".env",

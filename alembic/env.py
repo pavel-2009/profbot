@@ -7,6 +7,10 @@ from alembic import context
 
 from bot.core.db import Base
 from bot.models.user import User  # noqa: F401 - импорт модели для регистрации в метаданных
+from bot.models.product import Product  # noqa: F401 - импорт модели для регистрации в метаданных
+from bot.models.statistics import Statistics  # noqa: F401 - импорт модели для регистрации в метаданных
+from bot.models.transaction import Transaction  # noqa: F401 - импорт модели для регистрации в метаданных
+from bot.models.order import Order  # noqa: F401 - импорт модели для регистрации в метаданных
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

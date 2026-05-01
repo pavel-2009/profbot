@@ -6,6 +6,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.core.db import async_session_factory
 from bot.dependencies import get_shop_service
+from bot.core.config import config
 
 
 router = Router()
@@ -88,14 +89,29 @@ async def shop_page(callback: types.CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("shop_buy:"))
 async def shop_buy(callback: types.CallbackQuery) -> None:
     """Покупка товара."""
+    
     product_id = int(callback.data.split(":")[1])
 
     async with async_session_factory() as session:
         shop_service = get_shop_service(session)
         success = await shop_service.buy_product(callback.from_user.id, product_id)
+        
+        product = await shop_service.product_repository.get_product_by_id(product_id)
 
     if success:
         await callback.answer("Покупка успешна!", show_alert=True)
+        
+        if product and product.delivery_type == "manual":
+            await callback.message.answer(f"Покупка товара '{product.name}' оформлена. Ожидайте доставки от администратора.")
+             
+            for admin in config.ADMINS:
+                await callback.bot.send_message(
+                     admin,
+                     f"Пользователь @{callback.from_user.username} (ID: {callback.from_user.id}) купил товар '{product.name}' (ID: {product.id}). Пожалуйста, оформите доставку.",
+                )
+            return
+        
         return
 
     await callback.answer("Не удалось купить товар: недостаточно средств или товар недоступен.", show_alert=True)
+    return
