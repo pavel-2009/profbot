@@ -7,7 +7,7 @@ class Config(BaseSettings):
     """Конфигурация бота."""
 
     BOT_TOKEN: str | None = None
-    DATABASE_URL: str = "sqlite+aiosqlite:///./profbot.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./profbot.db?timeout=30&check_same_thread=false"
     
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379

@@ -17,6 +17,8 @@ class Statistics(Base):
     invited_users = Column(Integer, default=0)
     commands_executed = Column(Integer, default=0)
     last_activity = Column(DateTime, default=datetime.utcnow)
+    last_bonus = Column(Integer, default=0)
+    last_activity_track_start = Column(DateTime, default=datetime.utcnow)
     active_sessions = Column(Integer, default=0)
     earned_crystals_via_referrals = Column(Integer, default=0)
     spent_crystals = Column(Integer, default=0)

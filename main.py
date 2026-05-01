@@ -47,6 +47,7 @@ async def main() -> None:
     from bot.routers.referral import router as referral_router
     from bot.routers.menu import router as menu_router
     from bot.routers.statistics import router as statistics_router
+    from bot.routers.bonus import router as bonus_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
@@ -54,6 +55,7 @@ async def main() -> None:
     dispatcher.include_router(referral_router)
     dispatcher.include_router(menu_router)
     dispatcher.include_router(statistics_router)
+    dispatcher.include_router(bonus_router)
     logger.info("Routers registered")
     
     # Запускаем бота

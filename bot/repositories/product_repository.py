@@ -12,6 +12,15 @@ class ProductRepository:
     
     def __init__(self, session: AsyncSession):
         self.session = session
+    
+    
+    async def add_product(self, name: str, description: str, price: int) -> Product:
+        """Добавить новый товар в базу данных."""
+        new_product = Product(name=name, description=description, price=price)
+        self.session.add(new_product)
+        await self.session.commit()
+        await self.session.refresh(new_product)
+        return new_product
         
         
     async def get_product_by_id(self, product_id: int) -> Product | None:
@@ -27,15 +36,6 @@ class ProductRepository:
         page_size = config.SHOP_LIST_PAGINATION_SIZE
 
         return [products[index:index + page_size] for index in range(0, len(products), page_size)]
-    
-    
-    async def add_product(self, name: str, description: str, price: int) -> Product:
-        """Добавить новый товар в базу данных."""
-        new_product = Product(name=name, description=description, price=price)
-        self.session.add(new_product)
-        await self.session.commit()
-        await self.session.refresh(new_product)
-        return new_product
     
     
     async def update_product(self, product_id: int, name: str | None = None, description: str | None = None, price: int | None = None) -> Product | None:

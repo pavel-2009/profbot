@@ -14,6 +14,7 @@ class UserService:
         self.user_repository = UserRepository(session)
         self.statistics_repository = self.user_repository.statistics_repository
 
+# === Основные методы для работы с пользователями ===
     async def register_user(
         self,
         telegram_id: int,
@@ -44,12 +45,20 @@ class UserService:
         """Получение пользователя по Telegram ID."""
         return await self.user_repository.get_user_by_telegram_id(telegram_id)
 
+# === Методы для работы с балансом и бонусами ===
     async def apply_balance_transaction(self, telegram_id: int, amount: int, reason: str) -> User | None:
         """Единая операция изменения баланса."""
         result = await self.user_repository.apply_balance_transaction(telegram_id, amount, reason)
         await self.user_repository.session.commit()
         return result
+    
+    async def apply_daily_bonus(self, telegram_id: int) -> dict:
+        """Применение ежедневного бонуса для пользователя."""
+        bonus, answer = await self.user_repository.apply_daily_bonus(telegram_id)
+        await self.user_repository.session.commit()
+        return {"bonus": bonus, "answer": answer}
 
+# === Методы для получения профиля и статистики пользователя ===
     async def get_user_profile(self, telegram_id: int) -> UserProfileSchema | None:
         """Получение профиля пользователя."""
         return await self.user_repository.get_user_profile(telegram_id)

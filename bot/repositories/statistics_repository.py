@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from bot.models.statistics import Statistics
 from bot.models.user import User
+from bot.core.db import execute_with_retry
 
 
 class StatisticsRepository:
@@ -15,9 +16,18 @@ class StatisticsRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+
+    async def create_statistics(self, user_id: int) -> Statistics:
+        stats = Statistics(user_id=user_id)
+        self.session.add(stats)
+        await execute_with_retry(self.session.flush())
+        return stats
+
+
     async def get_statistics_by_user_id(self, user_id: int) -> Statistics | None:
         result = await self.session.execute(select(Statistics).where(Statistics.user_id == user_id))
         return result.scalars().first()
+    
     
     async def get_referrals(self, user_id: int) -> tuple[int, int, int]:
         stats = await self.get_statistics_by_user_id(user_id)
@@ -31,12 +41,6 @@ class StatisticsRepository:
         return total_referrals, active_referrals, conversion
         
 
-    async def create_statistics(self, user_id: int) -> Statistics:
-        stats = Statistics(user_id=user_id)
-        self.session.add(stats)
-        await self.session.flush()
-        return stats
-
     async def increment_fields(self, user_id: int, **increments: int) -> Statistics | None:
         stats = await self.get_statistics_by_user_id(user_id)
         if not stats:
@@ -46,5 +50,5 @@ class StatisticsRepository:
                 setattr(stats, field, (getattr(stats, field) or 0) + value)
             else:
                 setattr(stats, field, value)
-        await self.session.flush()
+        await execute_with_retry(self.session.flush())
         return stats
