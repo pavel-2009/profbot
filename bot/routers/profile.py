@@ -9,6 +9,7 @@ from bot.core.db import async_session_factory
 from bot.dependencies import get_user_service
 from bot.keyboards.keyboards import profile_keyboard
 from bot.services.user_service import UserService
+from bot.repositories.transaction_repository import TransactionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -64,3 +65,31 @@ async def user_profile(message: types.Message) -> None:
     except Exception as error:
         logger.error(f"Error handling profile command for user {message.from_user.id}: {error}", exc_info=True)
         await message.answer("Произошла ошибка при загрузке профиля. Пожалуйста, попробуйте позже.")
+
+
+@router.callback_query(F.data == "transactions_history")
+async def transactions_history(callback: types.CallbackQuery) -> None:
+    """Показать полную историю транзакций пользователя."""
+    async with async_session_factory() as session:
+        user_service: UserService = get_user_service(session)
+        user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+
+        if user is None:
+            await callback.message.answer("Пользователь не найден. Зарегистрируйтесь через /start.")
+            await callback.answer()
+            return
+
+        repo = TransactionRepository(session)
+        transactions = await repo.get_transactions_by_user_id(callback.from_user.id)
+
+    if not transactions:
+        await callback.message.answer("Транзакций пока нет.")
+        await callback.answer()
+        return
+
+    lines = ["📋 Полная история транзакций:"]
+    for tx in transactions:
+        lines.append(f"• {tx.created_at.strftime('%Y-%m-%d %H:%M')}: {tx.amount:+} — {tx.description}")
+
+    await callback.message.answer("\n".join(lines))
+    await callback.answer()
