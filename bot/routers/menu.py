@@ -1,5 +1,7 @@
 """Роутер для обработки команд к главному меню."""
 
+from collections.abc import Awaitable, Callable
+
 from aiogram import F, Router, types
 from aiogram.filters import Command
 
@@ -19,11 +21,8 @@ async def main_menu(message: types.Message) -> None:
     )
 
 
-@router.message(Command("help"))
-@router.message(F.text == "❓ Помощь")
-async def help_command(message: types.Message) -> None:
-    """Показать список доступных команд."""
-    await message.answer(
+async def _send_help(answer: Callable[..., Awaitable[types.Message]]) -> None:
+    await answer(
         "❓ Команды:\n"
         "/start — регистрация\n"
         "/profile — профиль\n"
@@ -32,3 +31,17 @@ async def help_command(message: types.Message) -> None:
         "/help — помощь",
         reply_markup=main_menu_keyboard,
     )
+
+
+@router.message(Command("help"))
+@router.message(F.text == "❓ Помощь")
+async def help_command(message: types.Message) -> None:
+    """Показать список доступных команд."""
+    await _send_help(message.answer)
+
+
+@router.callback_query(F.data == "help_menu")
+async def help_callback(callback: types.CallbackQuery) -> None:
+    """Показать помощь из inline-кнопки."""
+    await _send_help(callback.message.answer)
+    await callback.answer()
