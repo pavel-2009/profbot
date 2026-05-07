@@ -7,6 +7,7 @@ from bot.repositories.product_repository import ProductRepository
 from bot.repositories.transaction_repository import TransactionRepository
 from bot.repositories.statistics_repository import StatisticsRepository
 from bot.repositories.user_repository import UserRepository
+from bot.repositories.order_repository import OrderRepository
 from bot.core.config import config
 
 
@@ -18,6 +19,7 @@ class ShopService:
         self.transaction_repository = TransactionRepository(session)
         self.statistics_repository = StatisticsRepository(session)
         self.user_repository = UserRepository(session)
+        self.order_repository = OrderRepository(session)
 
     
     async def get_all_products(self) -> list[list[Product]]:
@@ -38,6 +40,11 @@ class ShopService:
         )
         if user is None:
             return False
+        
+        # Если заказ с типом manual, то создаем заказ
+        if product.delivery_type == "manual":
+            await self.order_repository.create_order(user_id, product_id, 1)
+        
         await self.user_repository.session.commit()
         return True
 
