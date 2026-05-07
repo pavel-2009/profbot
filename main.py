@@ -48,6 +48,7 @@ async def main() -> None:
     from bot.routers.menu import router as menu_router
     from bot.routers.statistics import router as statistics_router
     from bot.routers.bonus import router as bonus_router
+    from bot.routers.admin.start import router as admin_start_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
@@ -56,6 +57,7 @@ async def main() -> None:
     dispatcher.include_router(menu_router)
     dispatcher.include_router(statistics_router)
     dispatcher.include_router(bonus_router)
+    dispatcher.include_router(admin_start_router)
     logger.info("Routers registered")
     
     # Запускаем бота

@@ -31,3 +31,13 @@ profile_keyboard = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="❓ Помощь", callback_data="help_menu")],
     ]
 )
+
+
+# === Клавиатура для административного меню ===
+admin_menu_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="👥 Управление пользователями"), KeyboardButton(text="💰 Управление балансами")],
+        [KeyboardButton(text="🛒 Управление товарами"), KeyboardButton(text="📊 Общая статистика")],
+        [KeyboardButton(text="⚙️ Настройки бота"), KeyboardButton(text="📦 Заказы")]
+    ]
+)
