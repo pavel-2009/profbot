@@ -30,10 +30,20 @@ class OrderRepository:
         
         return result.scalars().all()
     
+    async def get_order_by_id(self, order_id: int) -> Order | None:
+        """Получает заказ по его ID."""
+        result = await self.session.execute(select(Order).where(Order.id == order_id))
+        
+        return result.scalars().first()
+    
     async def get_all_open_orders(self) -> list[Order]:
         """Получает все открытые заказы."""
         result = await self.session.execute(select(Order).where(Order.status == OrderStatus.open))
         return result.scalars().all()
+
+    async def complete_order(self, order_id: int) -> None:
+        """Завершает заказ."""
+        await self.update_order_status(order_id, OrderStatus.completed)
 
     async def update_order_status(self, order_id: int, new_status: OrderStatus) -> None:
         """Обновляет статус заказа."""

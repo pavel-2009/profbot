@@ -11,6 +11,7 @@ from bot.models.product import Product
 from bot.models.user import User
 from bot.models.statistics import Statistics
 from bot.models.transaction import Transaction
+from bot.models.order import Order
 from bot.middlewares.statistics import StatisticsMiddleware
 
 # Конфигурируем логирование
@@ -49,6 +50,7 @@ async def main() -> None:
     from bot.routers.statistics import router as statistics_router
     from bot.routers.bonus import router as bonus_router
     from bot.routers.admin.start import router as admin_start_router
+    from bot.routers.admin.orders import router as admin_orders_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
@@ -58,6 +60,7 @@ async def main() -> None:
     dispatcher.include_router(statistics_router)
     dispatcher.include_router(bonus_router)
     dispatcher.include_router(admin_start_router)
+    dispatcher.include_router(admin_orders_router)
     logger.info("Routers registered")
     
     # Запускаем бота

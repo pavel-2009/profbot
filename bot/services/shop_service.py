@@ -49,3 +49,16 @@ class ShopService:
         return True
 
     
+    async def get_all_open_orders(self) -> list:
+        """Получение всех открытых заказов."""
+        return await self.order_repository.get_all_open_orders()
+    
+    
+    async def complete_order(self, order_id: int) -> bool:
+        """Завершение заказа."""
+        order = await self.order_repository.get_order_by_id(order_id)
+        if not order:
+            return False
+        
+        await self.order_repository.complete_order(order_id)
+        return True
