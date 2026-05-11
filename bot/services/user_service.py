@@ -36,6 +36,10 @@ class UserService:
         """Проверка существования пользователя."""
         user = await self.user_repository.get_user_by_telegram_id(telegram_id)
         return user is not None
+    
+    async def get_all_users(self) -> list[User]:
+        """Получение списка всех пользователей."""
+        return await self.user_repository.get_all_users()
 
     async def get_user_by_referral_code(self, referral_code: str) -> User | None:
         """Получение пользователя по реферальному коду."""

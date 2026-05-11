@@ -59,6 +59,11 @@ class UserRepository:
         await self.session.refresh(new_user)
         return new_user
     
+    async def get_all_users(self) -> list[User]:
+        """Получение списка всех пользователей."""
+        result = await self.session.execute(select(User))
+        return result.scalars().all()
+    
     async def get_user_referral(self, telegram_id: int) -> str:
         user = await self.get_user_by_telegram_id(telegram_id)
         return f"https://t.me/ProfBot?start={user.referral_code}" if user else ""
