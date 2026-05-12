@@ -1,15 +1,48 @@
 """Роутер для ручного пополнения баланса пользователя."""
 
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
+import asyncio
+import logging
 
+from aiogram import F, Router
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    LabeledPrice,
+    Message,
+    PreCheckoutQuery,
+)
+
+from bot.core.config import config
+from bot.core.db import async_session_factory
 from bot.dependencies import get_user_service
 from bot.services.user_service import UserService
-from bot.core.db import async_session_factory
-from bot.core.config import config
 
 
 router = Router()
+logger = logging.getLogger(__name__)
+
+ALLOWED_TOP_UP_AMOUNTS = {100, 200, 500, 1000, 2000, 5000, 10000}
+MAX_TOP_UP_RETRIES = 3
+TOP_UP_RETRY_DELAY_SECONDS = 1
+
+
+def _parse_top_up_payload(payload: str) -> tuple[int, int] | None:
+    """Распарсить payload формата top_up_{amount}_{user_id}."""
+    parts = payload.split("_")
+    if len(parts) != 4 or parts[0] != "top" or parts[1] != "up":
+        return None
+
+    try:
+        amount = int(parts[2])
+        payment_user_id = int(parts[3])
+    except ValueError:
+        return None
+
+    if amount not in ALLOWED_TOP_UP_AMOUNTS or payment_user_id <= 0:
+        return None
+
+    return amount, payment_user_id
 
 
 @router.message(F.text == "💰 Пополнить")
@@ -27,8 +60,8 @@ async def handle_top_up_request(message: Message) -> None:
         ]
     )
     await message.answer("Вы можете пополнить баланс по следующим тарифам:", reply_markup=keyboard)
-    
-    
+
+
 @router.callback_query(F.data.startswith("top_up_"))
 async def handle_top_up_selection(callback_query: CallbackQuery) -> None:
     """Обработчик выбора тарифа для пополнения."""
@@ -39,46 +72,98 @@ async def handle_top_up_selection(callback_query: CallbackQuery) -> None:
         await callback_query.answer("Некорректный тариф. Попробуйте снова.", show_alert=True)
         return
 
-    await callback_query.bot.send_invoice(
-        chat_id=callback_query.from_user.id,
-        title="Пополнение баланса",
-        description=f"Пополнение баланса на {amount} кристаллов",
-        payload=f"top_up_{amount}_{callback_query.from_user.id}",
-        provider_token=config.PAYMENT_TOKEN,
-        currency="UZS",
-        prices=[LabeledPrice(label=f"Пополнение на {amount} кристаллов", amount=amount * 100)],
-        start_parameter=f"top_up_{amount}"
-    )
-    
-    
+    if amount not in ALLOWED_TOP_UP_AMOUNTS:
+        await callback_query.answer("Такой тариф недоступен.", show_alert=True)
+        return
+
+    try:
+        await callback_query.bot.send_invoice(
+            chat_id=callback_query.from_user.id,
+            title="Пополнение баланса",
+            description=f"Пополнение баланса на {amount} кристаллов",
+            payload=f"top_up_{amount}_{callback_query.from_user.id}",
+            provider_token=config.PAYMENT_TOKEN,
+            currency="UZS",
+            prices=[LabeledPrice(label=f"Пополнение на {amount} кристаллов", amount=amount * 100)],
+            start_parameter=f"top_up_{amount}",
+        )
+        await callback_query.answer("Счёт на оплату отправлен.")
+    except Exception:
+        logger.exception("Failed to send top up invoice", extra={"user_id": callback_query.from_user.id, "amount": amount})
+        await callback_query.answer("Не удалось создать счёт. Попробуйте позже.", show_alert=True)
+
+
 @router.pre_checkout_query(F.invoice_payload.startswith("top_up_"))
 async def handle_pre_checkout_query(pre_checkout_query: PreCheckoutQuery) -> None:
     """Обработчик предварительной проверки платежа."""
+    payload_data = _parse_top_up_payload(pre_checkout_query.invoice_payload)
+    if payload_data is None:
+        await pre_checkout_query.answer(ok=False, error_message="Некорректные данные платежа.")
+        return
+
+    amount, payment_user_id = payload_data
+    if pre_checkout_query.from_user.id != payment_user_id:
+        await pre_checkout_query.answer(ok=False, error_message="Платёж можно оплатить только владельцу счёта.")
+        return
+
+    total_amount = pre_checkout_query.total_amount
+    expected_total_amount = amount * 100
+    if total_amount != expected_total_amount:
+        await pre_checkout_query.answer(ok=False, error_message="Сумма платежа не совпадает с тарифом.")
+        return
+
     await pre_checkout_query.answer(ok=True)
-    
-    
+
+
 @router.message(F.content_type == "successful_payment")
 async def handle_successful_payment(message: Message) -> None:
     """Обработчик успешного платежа."""
-    payload = message.successful_payment.invoice_payload
-    if not payload.startswith("top_up_"):
-        return  # Не наш платеж, игнорируем
+    payment = message.successful_payment
+    payload_data = _parse_top_up_payload(payment.invoice_payload)
+    if payload_data is None:
+        logger.warning("Received successful payment with invalid payload", extra={"payload": payment.invoice_payload})
+        return
 
-    amount_str = payload.split("_")[2]
-    try:
-        amount = int(amount_str)
-    except ValueError:
-        return  # Некорректный payload, игнорируем
-    
+    amount, payment_user_id = payload_data
+
     user_id = message.from_user.id
-    payment_user_id = int(payload.split("_")[3])
-    
     if user_id != payment_user_id:
-        return  # Платеж не от того пользователя, игнорируем
+        logger.warning("Payment user mismatch", extra={"message_user_id": user_id, "payload_user_id": payment_user_id})
+        return
 
-    async with async_session_factory() as session:
-        user_service: UserService = get_user_service(session)
-        await user_service.apply_balance_transaction(user_id, amount, description="Пополнение баланса через Telegram Payments")
-        
-    await message.answer(f"Ваш баланс успешно пополнен на {amount} кристаллов! Спасибо за покупку.")
-    
+    expected_total_amount = amount * 100
+    if payment.total_amount != expected_total_amount:
+        logger.warning(
+            "Payment amount mismatch",
+            extra={"user_id": user_id, "expected_total_amount": expected_total_amount, "actual_total_amount": payment.total_amount},
+        )
+        await message.answer("Платёж получен с некорректной суммой. Обратитесь в поддержку.")
+        return
+
+    for attempt in range(1, MAX_TOP_UP_RETRIES + 1):
+        try:
+            async with async_session_factory() as session:
+                user_service: UserService = get_user_service(session)
+                if not await user_service.user_exists(user_id):
+                    await message.answer("Пользователь не найден. Напишите /start и повторите пополнение.")
+                    return
+
+                updated_user = await user_service.apply_balance_transaction(
+                    user_id,
+                    amount,
+                    reason="Пополнение баланса через Telegram Payments",
+                )
+
+                if updated_user is None:
+                    raise RuntimeError("Balance top up transaction returned None")
+
+            await message.answer(f"Ваш баланс успешно пополнен на {amount} кристаллов! Спасибо за покупку.")
+            return
+        except Exception:
+            logger.exception("Top up attempt failed", extra={"user_id": user_id, "amount": amount, "attempt": attempt})
+            if attempt == MAX_TOP_UP_RETRIES:
+                await message.answer(
+                    "Платёж получен, но зачисление временно недоступно. Мы уже зафиксировали ошибку и проверим вручную."
+                )
+                return
+            await asyncio.sleep(TOP_UP_RETRY_DELAY_SECONDS)

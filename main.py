@@ -3,11 +3,12 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
 
 from bot.core.db import Base, engine
 from bot.core.config import config, validate_runtime_config
 from bot.core.logging import setup_logging
+from bot.core.redis import get_redis_client
 # Импортируем модели, чтобы они зарегистрировались в Base.metadata
 from bot.models.product import Product
 from bot.models.user import User
@@ -37,7 +38,8 @@ async def main() -> None:
     
     # Инициализация бота и диспетчера
     bot: Bot = Bot(token=config.BOT_TOKEN)
-    storage = MemoryStorage()
+    redis_client = get_redis_client()
+    storage = RedisStorage(redis=redis_client)
     dispatcher = Dispatcher(storage=storage)
     dispatcher.message.middleware(StatisticsMiddleware())
     dispatcher.callback_query.middleware(StatisticsMiddleware())
@@ -72,7 +74,10 @@ async def main() -> None:
     
     # Запускаем бота
     logger.info("Bot polling started")
-    await dispatcher.start_polling(bot)
+    try:
+        await dispatcher.start_polling(bot)
+    finally:
+        await redis_client.aclose()
 
 
 if __name__ == "__main__":
