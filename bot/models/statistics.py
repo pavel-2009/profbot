@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, BigInteger
 
 from bot.core.db import Base
 
@@ -13,7 +13,7 @@ class Statistics(Base):
     __tablename__ = "statistics"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.telegram_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"), nullable=False)
     invited_users = Column(Integer, default=0)
     active_invited_users = Column(Integer, default=0)
     commands_executed = Column(Integer, default=0)
