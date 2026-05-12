@@ -7,12 +7,13 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from bot.core.db import async_session_factory
 from bot.dependencies import get_shop_service
 from bot.core.config import config
+from bot.models.product import Product
 
 
 router = Router()
 
 
-def get_shop_text(products: list, page: int, total_pages: int) -> str:
+def get_shop_text(products: list[Product], page: int, total_pages: int) -> str:
     """Собрать текст страницы магазина."""
     text = "🛒 Магазин\n\n"
 
@@ -24,7 +25,7 @@ def get_shop_text(products: list, page: int, total_pages: int) -> str:
     return text
 
 
-def get_shop_keyboard(pages: list, page: int) -> InlineKeyboardMarkup:
+def get_shop_keyboard(pages: list[Product], page: int) -> InlineKeyboardMarkup:
     """Клавиатура магазина."""
     total_pages = len(pages)
     prev_page = max(page - 1, 0)
@@ -45,7 +46,7 @@ def get_shop_keyboard(pages: list, page: int) -> InlineKeyboardMarkup:
     )
 
 
-async def get_shop_pages() -> list:
+async def get_shop_pages() -> list[Product]:
     async with async_session_factory() as session:
         shop_service = get_shop_service(session)
         return await shop_service.get_all_products()

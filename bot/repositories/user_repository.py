@@ -66,7 +66,7 @@ class UserRepository:
     
     async def get_user_referral(self, telegram_id: int) -> str:
         user = await self.get_user_by_telegram_id(telegram_id)
-        return f"https://t.me/ProfBot?start={user.referral_code}" if user else ""
+        return f"https://t.me/profbot?start={user.referral_code}" if user else ""
 
     async def get_user_by_referral_code(self, referral_code: str) -> User | None:
         result = await self.session.execute(select(User).where(User.referral_code == referral_code))
@@ -99,7 +99,7 @@ class UserRepository:
                     transactions=stats.transactions if stats else 0,
                 ),
                 transactions=[],
-                referral_link=f"https://t.me/ProfBot?start={user.referral_code}",
+                referral_link=f"https://t.me/profbot?start={user.referral_code}",
             ))
         return profiles
 
@@ -115,7 +115,7 @@ class UserRepository:
             balance=user.balance,
             stats=await self._get_user_stats(telegram_id),
             transactions=await self._get_user_transactions(user),
-            referral_link=f"https://t.me/ProfBot?start={user.referral_code}",
+            referral_link=f"https://t.me/profbot?start={user.referral_code}",
         )
 
     async def get_top_users_by_balance(self, limit: int = 10) -> list[User]:

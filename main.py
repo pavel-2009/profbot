@@ -3,6 +3,7 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.core.db import Base, engine
 from bot.core.config import config
@@ -38,7 +39,8 @@ async def main() -> None:
     
     # Инициализация бота и диспетчера
     bot = Bot(token=config.BOT_TOKEN)
-    dispatcher = Dispatcher()
+    storage = MemoryStorage()
+    dispatcher = Dispatcher(storage=storage)
     dispatcher.message.middleware(StatisticsMiddleware())
     dispatcher.callback_query.middleware(StatisticsMiddleware())
     
@@ -53,6 +55,7 @@ async def main() -> None:
     from bot.routers.admin.start import router as admin_start_router
     from bot.routers.admin.orders import router as admin_orders_router
     from bot.routers.admin.users import router as admin_users_router
+    from bot.routers.admin.shop import router as admin_shop_router
       
     dispatcher.include_router(start_router)
     dispatcher.include_router(profile_router)
@@ -64,6 +67,7 @@ async def main() -> None:
     dispatcher.include_router(admin_start_router)
     dispatcher.include_router(admin_orders_router)
     dispatcher.include_router(admin_users_router)
+    dispatcher.include_router(admin_shop_router)
     logger.info("Routers registered")
     
     # Запускаем бота

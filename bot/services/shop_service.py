@@ -20,6 +20,11 @@ class ShopService:
         self.statistics_repository = StatisticsRepository(session)
         self.user_repository = UserRepository(session)
         self.order_repository = OrderRepository(session)
+        
+        
+    async def add_product(self, name: str, description: str, price: int, delivery_type: str) -> Product:
+        """Добавление нового товара."""
+        return await self.product_repository.add_product(name, description, price, delivery_type)
 
     
     async def get_all_products(self) -> list[list[Product]]:
@@ -62,3 +67,13 @@ class ShopService:
         
         await self.order_repository.complete_order(order_id)
         return True
+    
+    
+    async def get_product_by_id(self, product_id: int) -> Product | None:
+        """Получение товара по ID."""
+        return await self.product_repository.get_product_by_id(product_id)
+    
+    
+    async def update_product(self, product_id: int, **kwargs) -> Product | None:
+        """Обновление товара."""
+        return await self.product_repository.update_product(product_id, **kwargs)
