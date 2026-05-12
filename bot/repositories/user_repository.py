@@ -201,10 +201,20 @@ class UserRepository:
         # Обновляем дату последнего получения бонуса
         stats = await self.statistics_repository.get_statistics_by_user_id(telegram_id)
         if stats:
+            now = datetime.utcnow()
+            # Проверяем пропуск дня: если последний бонус был более чем 24 часа назад (и это не первый бонус)
+            # то сбрасываем счетчик дней активности
+            should_reset_streak = False
+            if stats.last_bonus:
+                time_since_last_bonus = (now - stats.last_bonus).total_seconds()
+                # Если прошло более 24 часов, значит пропустили день
+                if time_since_last_bonus > 86400:
+                    should_reset_streak = True
+            
             await self.statistics_repository.increment_fields(
                 telegram_id,
-                last_bonus=datetime.utcnow(),
-                last_activity_track_start=stats.last_activity_track_start if days_active <= max(USER_BONUSES_PER_DAY.keys()) else datetime.utcnow()
+                last_bonus=now,
+                last_activity_track_start=now if should_reset_streak else stats.last_activity_track_start
             )
         
         return bonus, f"Ежедневный бонус в размере {bonus} кристаллов за {days_active} дней активности"
@@ -216,7 +226,8 @@ class UserRepository:
             return None
         
         now = datetime.utcnow()
-        if stats.last_bonus and (now - stats.last_activity).days < 1:
+        # Проверка: если бонус получен менее 24 часов назад - вернуть 0
+        if stats.last_bonus and (now - stats.last_bonus).total_seconds() < 86400:
             return 0, 0
         
         days_active = (now - stats.last_activity_track_start).days + 1
