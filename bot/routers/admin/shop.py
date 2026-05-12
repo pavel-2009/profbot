@@ -6,7 +6,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from bot.models.product import Product
+from bot.models.product import Product, DeliveryType
 from bot.core.db import async_session_factory
 from bot.dependencies import get_shop_service
 from bot.routers.shop import get_shop_text, get_shop_pages
@@ -78,7 +78,15 @@ async def get_products_list(message: Message, state: FSMContext) -> None:
     product_list = await get_shop_pages()
     
     if not product_list:
-        await message.answer("Нет товаров в магазине.")
+        
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="➕ Добавить товар")],
+                [KeyboardButton(text="⬅️ Назад в меню")]
+            ]
+        )
+        
+        await message.answer("Нет товаров в магазине.", reply_markup=keyboard)
         return
     
     products = get_shop_text(product_list[0], page=0, total_pages=len(product_list))
@@ -269,11 +277,11 @@ async def add_product_price(message: Message, state: FSMContext) -> None:
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Manual (ручная выдача)", callback_data="delivery_manual")],
-            [InlineKeyboardButton(text="Automatic (автоматическая выдача)", callback_data="delivery_automatic")],
+            [InlineKeyboardButton(text="Automatic (автоматическая выдача)", callback_data="delivery_auto")],
         ]
     )
     
-    await message.answer("Введите тип доставки нового товара (manual/automatic):", reply_markup=keyboard)
+    await message.answer("Введите тип доставки нового товара (manual/auto):", reply_markup=keyboard)
     
     
 @router.callback_query(AddProductForm.waiting_for_delivery_type, F.data.startswith("delivery_"))
@@ -281,7 +289,7 @@ async def add_product_delivery_type(callback: CallbackQuery, state: FSMContext) 
     """Обработка типа доставки нового товара."""
     delivery_type = callback.data.split("_")[1]
     
-    if delivery_type not in ["manual", "automatic"]:
+    if delivery_type not in ["manual", "auto"]:
         await callback.message.answer("Некорректный тип доставки. Пожалуйста, выберите один из предложенных вариантов.")
         return
     
@@ -321,8 +329,8 @@ async def add_product_delivery_type(callback: CallbackQuery, state: FSMContext) 
                 name=data['name'],
                 description=data['description'],
                 price=data['price'],
-                delivery_type=data['delivery_type']
-            )
+                delivery_type=DeliveryType.AUTO if data['delivery_type'] == "auto" else DeliveryType.MANUAL)
+            
             
             if new_product:
                 logger.info(f"New product added: {new_product.id} - {new_product.name}")
@@ -340,6 +348,8 @@ async def add_product_delivery_type(callback: CallbackQuery, state: FSMContext) 
     except Exception as e:
         logger.error(f"Error adding product: {e}")
         await callback.message.answer("❌ Ошибка при добавлении товара.")
+        await state.clear()
+        return
     
     await state.clear()
     

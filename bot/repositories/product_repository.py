@@ -14,9 +14,9 @@ class ProductRepository:
         self.session = session
     
     
-    async def add_product(self, name: str, description: str, price: int) -> Product:
+    async def add_product(self, name: str, description: str, price: int, delivery_type: str) -> Product:
         """Добавить новый товар в базу данных."""
-        new_product = Product(name=name, description=description, price=price)
+        new_product = Product(name=name, description=description, price=price, delivery_type=delivery_type)
         self.session.add(new_product)
         await self.session.commit()
         await self.session.refresh(new_product)
@@ -38,7 +38,7 @@ class ProductRepository:
         return [products[index:index + page_size] for index in range(0, len(products), page_size)]
     
     
-    async def update_product(self, product_id: int, name: str | None = None, description: str | None = None, price: int | None = None) -> Product | None:
+    async def update_product(self, product_id: int, name: str | None = None, description: str | None = None, price: int | None = None, delivery_type: str | None = None) -> Product | None:
         """Обновить информацию о товаре."""
         product = await self.get_product_by_id(product_id)
         if not product:

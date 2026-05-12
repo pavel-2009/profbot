@@ -38,7 +38,7 @@ async def main() -> None:
         raise
     
     # Инициализация бота и диспетчера
-    bot = Bot(token=config.BOT_TOKEN)
+    bot: Bot = Bot(token=config.BOT_TOKEN)
     storage = MemoryStorage()
     dispatcher = Dispatcher(storage=storage)
     dispatcher.message.middleware(StatisticsMiddleware())
