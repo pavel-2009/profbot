@@ -7,6 +7,7 @@ class Config(BaseSettings):
     """Конфигурация бота."""
 
     BOT_TOKEN: str | None = None
+    PAYMENT_TOKEN: str | None = None
     DATABASE_URL: str = "sqlite+aiosqlite:///./profbot.db?timeout=30&check_same_thread=false"
     
     REDIS_HOST: str = "localhost"
@@ -32,3 +33,5 @@ def validate_runtime_config() -> None:
         raise RuntimeError("BOT_TOKEN is required. Set it in .env or environment variables.")
     if not config.DATABASE_URL:
         raise RuntimeError("DATABASE_URL is required.")
+    if not config.PAYMENT_TOKEN:
+        raise RuntimeError("PAYMENT_TOKEN is required. Set it in .env or environment variables.")

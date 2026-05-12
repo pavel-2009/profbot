@@ -50,6 +50,7 @@ async def main() -> None:
     from bot.routers.menu import router as menu_router
     from bot.routers.statistics import router as statistics_router
     from bot.routers.bonus import router as bonus_router
+    from bot.routers.payment import router as payment_router
     from bot.routers.admin.start import router as admin_start_router
     from bot.routers.admin.orders import router as admin_orders_router
     from bot.routers.admin.users import router as admin_users_router
@@ -62,6 +63,7 @@ async def main() -> None:
     dispatcher.include_router(menu_router)
     dispatcher.include_router(statistics_router)
     dispatcher.include_router(bonus_router)
+    dispatcher.include_router(payment_router)
     dispatcher.include_router(admin_start_router)
     dispatcher.include_router(admin_orders_router)
     dispatcher.include_router(admin_users_router)
