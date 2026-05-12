@@ -13,7 +13,6 @@ from bot.models.transaction import Transaction
 from bot.schemas import TransactionSchema, UserProfileSchema, UserStatsSchema
 from bot.repositories.statistics_repository import StatisticsRepository
 from bot.repositories.transaction_repository import TransactionRepository
-from bot.core.db import execute_with_retry
 
 logger = logging.getLogger(__name__)
 REFERRAL_BONUS = 50
@@ -178,7 +177,7 @@ class UserRepository:
         logger.info(f"Statistics updated for user {telegram_id}: transactions +1, spent_crystals +{abs(amount) if amount < 0 else 0}, earned_crystals_via_referrals +{amount if amount > 0 and 'Рефераль' in reason else 0}")
         
         # Записываем в БД (вызывающий код должен вызвать session.commit())
-        await execute_with_retry(self.session.flush())
+        await self.session.flush()
         return user
     
     async def apply_daily_bonus(self, telegram_id: int) -> tuple[int, str]:

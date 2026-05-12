@@ -12,6 +12,7 @@ from bot.models.order import Order
 
 router = Router()
 router.message.middleware(AdminMiddleware())
+router.callback_query.middleware(AdminMiddleware())
 
 
 def _get_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
@@ -31,8 +32,7 @@ async def get_open_orders(message: Message) -> None:
     
     async with async_session_factory() as session:
         shop_service = get_shop_service(session)
-    
-    open_orders: list[Order] = await shop_service.get_all_open_orders()
+        open_orders: list[Order] = await shop_service.get_all_open_orders()
     
     if not open_orders:
         await message.answer("Нет открытых заказов.")
@@ -40,7 +40,7 @@ async def get_open_orders(message: Message) -> None:
     
     response = "Открытые заказы:\n\n"
     for order in open_orders[:5]:  # Показываем только первые 5 заказов
-        response += f"ID: {order.id}, User ID: {order.user_id}, Product ID: {order.product_id}, Quantity: {order.quantity}\n"
+        response += f"ID: {order.id}, User ID: {order.user_id}, Product ID: {order.product_id}, Status: {order.status.value}\n"
         
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -60,8 +60,7 @@ async def show_all_orders(callback_query: CallbackQuery) -> None:
     
     async with async_session_factory() as session:
         shop_service = get_shop_service(session)
-    
-    open_orders: list[Order] = await shop_service.get_all_open_orders()
+        open_orders: list[Order] = await shop_service.get_all_open_orders()
     
     if not open_orders:
         await callback_query.message.answer("Нет открытых заказов.")
@@ -69,7 +68,7 @@ async def show_all_orders(callback_query: CallbackQuery) -> None:
     
     response = "Открытые заказы:\n\n"
     for order in open_orders:
-        response += f"ID: {order.id}, User ID: {order.user_id}, Product ID: {order.product_id}, Quantity: {order.quantity}\n"
+        response += f"ID: {order.id}, User ID: {order.user_id}, Product ID: {order.product_id}, Status: {order.status.value}\n"
         
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -88,8 +87,7 @@ async def show_order_details(callback_query: CallbackQuery) -> None:
     
     async with async_session_factory() as session:
         shop_service = get_shop_service(session)
-    
-    open_orders: list[Order] = await shop_service.get_all_open_orders()
+        open_orders: list[Order] = await shop_service.get_all_open_orders()
     
     order = next((o for o in open_orders if o.id == order_id), None)
     
@@ -112,7 +110,6 @@ async def complete_order(callback_query: CallbackQuery) -> None:
     
     async with async_session_factory() as session:
         shop_service = get_shop_service(session)
-    
-    await shop_service.complete_order(order_id)
+        await shop_service.complete_order(order_id)
     
     await callback_query.message.answer(f"Заказ {order_id} завершен.")

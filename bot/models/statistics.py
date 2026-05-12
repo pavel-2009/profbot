@@ -15,6 +15,7 @@ class Statistics(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.telegram_id"), nullable=False)
     invited_users = Column(Integer, default=0)
+    active_invited_users = Column(Integer, default=0)
     commands_executed = Column(Integer, default=0)
     last_activity = Column(DateTime, default=datetime.utcnow)
     last_bonus = Column(DateTime, default=None, nullable=True)

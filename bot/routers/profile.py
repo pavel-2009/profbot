@@ -89,7 +89,7 @@ async def transactions_history(callback: types.CallbackQuery) -> None:
 
     lines = ["📋 Полная история транзакций:"]
     for tx in transactions:
-        lines.append(f"• {tx.created_at.strftime('%Y-%m-%d %H:%M')}: {tx.amount:+} — {tx.description}")
+        lines.append(f"• {tx.created_at.strftime('%Y-%m-%d %H:%M')}: {tx.amount:+} — {tx.reason}")
 
     await callback.message.answer("\n".join(lines))
     await callback.answer()

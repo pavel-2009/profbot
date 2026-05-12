@@ -17,8 +17,6 @@ class User(Base):
     balance = Column(Integer, default=0)
     referral_code = Column(String, unique=True, nullable=True)
     invited_by = Column(Integer, ForeignKey("users.telegram_id"), nullable=True)
-    daily_bonus_last = Column(DateTime, nullable=True, default=None)
-    daily_bonus_streak = Column(Integer, default=0)
     
     # создаем индексы
     __table_args__ = (

@@ -14,6 +14,7 @@ from bot.models.transaction import Transaction
 
 router = Router()
 router.message.middleware(AdminMiddleware())
+router.callback_query.middleware(AdminMiddleware())
 
 
 @router.message(Command("users"))
@@ -23,8 +24,7 @@ async def get_users_list(message: Message) -> None:
     
     async with async_session_factory() as session:
         user_service = get_user_service(session)
-    
-    users: list[User] = await user_service.get_all_users()
+        users: list[User] = await user_service.get_all_users()
     
     if not users:
         await message.answer("Нет зарегистрированных пользователей.")
@@ -52,8 +52,7 @@ async def show_all_users(callback_query: CallbackQuery) -> None:
     
     async with async_session_factory() as session:
         user_service = get_user_service(session)
-    
-    users: list[User] = await user_service.get_all_users()
+        users: list[User] = await user_service.get_all_users()
     
     if not users:
         await callback_query.message.answer("Нет зарегистрированных пользователей.")
@@ -80,8 +79,7 @@ async def show_user_details(callback_query: CallbackQuery) -> None:
     
     async with async_session_factory() as session:
         user_service = get_user_service(session)
-    
-    user: User | None = await user_service.get_user_by_telegram_id(telegram_id)
+        user: User | None = await user_service.get_user_by_telegram_id(telegram_id)
     
     if not user:
         await callback_query.message.answer("Пользователь не найден.")
@@ -218,8 +216,7 @@ async def back_to_users_list(callback_query: CallbackQuery) -> None:
     
     async with async_session_factory() as session:
         user_service = get_user_service(session)
-    
-    users: list[User] = await user_service.get_all_users()
+        users: list[User] = await user_service.get_all_users()
     
     if not users:
         await callback_query.message.answer("Нет зарегистрированных пользователей.")

@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 
 from bot.models.statistics import Statistics
 from bot.models.user import User
-from bot.core.db import execute_with_retry
 
 
 class StatisticsRepository:
@@ -20,7 +19,7 @@ class StatisticsRepository:
     async def create_statistics(self, user_id: int) -> Statistics:
         stats = Statistics(user_id=user_id)
         self.session.add(stats)
-        await execute_with_retry(self.session.flush())
+        await self.session.flush()
         return stats
 
 
@@ -50,5 +49,5 @@ class StatisticsRepository:
                 setattr(stats, field, (getattr(stats, field) or 0) + value)
             else:
                 setattr(stats, field, value)
-        await execute_with_retry(self.session.flush())
+        await self.session.flush()
         return stats

@@ -50,6 +50,8 @@ class ProductRepository:
             product.description = description
         if price is not None:
             product.price = price
+        if delivery_type is not None:
+            product.delivery_type = delivery_type
             
         await self.session.commit()
         await self.session.refresh(product)

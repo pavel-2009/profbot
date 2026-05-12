@@ -6,8 +6,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.core.db import async_session_factory
 from bot.dependencies import get_shop_service
-from bot.core.config import config
-from bot.models.product import Product
+from bot.models.product import DeliveryType, Product
 
 
 router = Router()
@@ -102,14 +101,8 @@ async def shop_buy(callback: types.CallbackQuery) -> None:
     if success:
         await callback.answer("Покупка успешна!", show_alert=True)
         
-        if product and product.delivery_type == "manual":
+        if product and product.delivery_type == DeliveryType.MANUAL:
             await callback.message.answer(f"Покупка товара '{product.name}' оформлена. Ожидайте доставки от администратора.")
-             
-            for admin in config.ADMINS:
-                await callback.bot.send_message(
-                     admin,
-                     f"Пользователь @{callback.from_user.username} (ID: {callback.from_user.id}) купил товар '{product.name}' (ID: {product.id}). Пожалуйста, оформите доставку.",
-                )
             return
         
         return

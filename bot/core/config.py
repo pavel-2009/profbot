@@ -24,3 +24,11 @@ class Config(BaseSettings):
 
 
 config = Config()
+
+
+def validate_runtime_config() -> None:
+    """Проверить обязательные настройки перед запуском бота."""
+    if not config.BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN is required. Set it in .env or environment variables.")
+    if not config.DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is required.")

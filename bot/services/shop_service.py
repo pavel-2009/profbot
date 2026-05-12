@@ -2,7 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.models.product import Product
+from bot.models.product import DeliveryType, Product
 from bot.repositories.product_repository import ProductRepository
 from bot.repositories.transaction_repository import TransactionRepository
 from bot.repositories.statistics_repository import StatisticsRepository
@@ -47,8 +47,8 @@ class ShopService:
             return False
         
         # Если заказ с типом manual, то создаем заказ
-        if product.delivery_type == "manual":
-            await self.order_repository.create_order(user_id, product_id, 1)
+        if product.delivery_type == DeliveryType.MANUAL:
+            await self.order_repository.create_order(user_id, product_id)
         
         await self.user_repository.session.commit()
         return True

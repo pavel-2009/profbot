@@ -70,7 +70,11 @@ async def user_statistics(event: types.Message | types.CallbackQuery) -> None:
     total_referrals, active_referrals, conversion = referrals_stats
     
     shop_transactions = [t for t in all_transactions if t.amount < 0]
-    most_common_reason = max(set(t.description for t in shop_transactions), key=lambda r: sum(1 for t in shop_transactions if t.reason == r), default="—")
+    most_common_reason = max(
+        {t.reason for t in shop_transactions},
+        key=lambda reason: sum(1 for t in shop_transactions if t.reason == reason),
+        default="—",
+    )
 
     text = (
         "📊 ВАША СТАТИСТИКА\n\n"

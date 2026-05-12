@@ -6,7 +6,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.core.db import Base, engine
-from bot.core.config import config
+from bot.core.config import config, validate_runtime_config
+from bot.core.logging import setup_logging
 # Импортируем модели, чтобы они зарегистрировались в Base.metadata
 from bot.models.product import Product
 from bot.models.user import User
@@ -16,16 +17,13 @@ from bot.models.order import Order
 
 from bot.middlewares.statistics import StatisticsMiddleware
 
-# Конфигурируем логирование
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
     """Запуск бота."""
+    validate_runtime_config()
     logger.info("Starting bot...")
     
     # Инициализация базы данных
