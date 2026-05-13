@@ -13,6 +13,7 @@ class Config(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
+    REDIS_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
     
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
@@ -21,6 +22,9 @@ class Config(BaseSettings):
     POSTGRES_PORT: int = 5432
     
     SHOP_LIST_PAGINATION_SIZE: int = 5
+    
+    RATE_LIMIT_MAX_REQUESTS: int = 5
+    RATE_LIMIT_TIME: int = 60  # Время в секундах для сброса счетчика запросов
     
     ADMINS: list[int] = []
 

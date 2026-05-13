@@ -17,6 +17,7 @@ from bot.models.transaction import Transaction
 from bot.models.order import Order
 
 from bot.middlewares.statistics import StatisticsMiddleware
+from bot.middlewares.limiter import RateLimiterMiddleware
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -43,6 +44,8 @@ async def main() -> None:
     dispatcher = Dispatcher(storage=storage)
     dispatcher.message.middleware(StatisticsMiddleware())
     dispatcher.callback_query.middleware(StatisticsMiddleware())
+    dispatcher.message.middleware(RateLimiterMiddleware())
+    dispatcher.callback_query.middleware(RateLimiterMiddleware())
     
     # Регистрируем роутеры
     from bot.routers.start import router as start_router  

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import redis.asyncio as aioredis
 
 from aiogram import F, Router
 from aiogram.types import (
@@ -21,7 +22,7 @@ from bot.services.user_service import UserService
 
 router = Router()
 logger = logging.getLogger(__name__)
-
+redis_client = aioredis.from_url(config.REDIS_URL)
 ALLOWED_TOP_UP_AMOUNTS = {100, 200, 500, 1000, 2000, 5000, 10000}
 MAX_TOP_UP_RETRIES = 3
 TOP_UP_RETRY_DELAY_SECONDS = 1
@@ -87,6 +88,10 @@ async def handle_top_up_selection(callback_query: CallbackQuery) -> None:
             prices=[LabeledPrice(label=f"Пополнение на {amount} кристаллов", amount=amount * 100)],
             start_parameter=f"top_up_{amount}",
         )
+        
+        # Сохранение информации о платеже в Redis для последующей проверки
+        await redis_client.setex(f"pending_top_up:{callback_query.from_user.id}:{amount}", 3600, "pending")
+        
         await callback_query.answer("Счёт на оплату отправлен.")
     except Exception:
         logger.exception("Failed to send top up invoice", extra={"user_id": callback_query.from_user.id, "amount": amount})
@@ -110,6 +115,9 @@ async def handle_pre_checkout_query(pre_checkout_query: PreCheckoutQuery) -> Non
     expected_total_amount = amount * 100
     if total_amount != expected_total_amount:
         await pre_checkout_query.answer(ok=False, error_message="Сумма платежа не совпадает с тарифом.")
+        return
+    
+    if await redis_client.get(f"pending_top_up:{payment_user_id}:{amount}") != b"pending":
         return
 
     await pre_checkout_query.answer(ok=True)
@@ -158,6 +166,9 @@ async def handle_successful_payment(message: Message) -> None:
                     raise RuntimeError("Balance top up transaction returned None")
 
             await message.answer(f"Ваш баланс успешно пополнен на {amount} кристаллов! Спасибо за покупку.")
+            
+            await redis_client.delete(f"pending_top_up:{user_id}:{amount}")
+            
             return
         except Exception:
             logger.exception("Top up attempt failed", extra={"user_id": user_id, "amount": amount, "attempt": attempt})
@@ -167,3 +178,7 @@ async def handle_successful_payment(message: Message) -> None:
                 )
                 return
             await asyncio.sleep(TOP_UP_RETRY_DELAY_SECONDS)
+            
+        finally:
+            await redis_client.delete(f"pending_top_up:{user_id}:{amount}")
+            return

@@ -4,6 +4,10 @@ import logging
 import random
 import string
 from datetime import datetime
+import asyncio
+from contextlib import asynccontextmanager
+
+import redis.asyncio as aioredis
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +17,12 @@ from bot.models.transaction import Transaction
 from bot.schemas import TransactionSchema, UserProfileSchema, UserStatsSchema
 from bot.repositories.statistics_repository import StatisticsRepository
 from bot.repositories.transaction_repository import TransactionRepository
+from bot.core.config import config
 
 logger = logging.getLogger(__name__)
+
+redis_client = aioredis.from_url(config.REDIS_URL)
+
 REFERRAL_BONUS = 50
 REGISTRATION_BONUS = 100
 
@@ -25,6 +33,20 @@ USER_BONUSES_PER_DAY = {
     5: 15,
     7: 20,
 }
+
+
+@asynccontextmanager
+async def lock(user_id: int):
+    lock_key = f"user_lock:{user_id}"
+    while True:
+        if await redis_client.set(lock_key, "1", ex=5, nx=True):
+            try:
+                yield
+            finally:
+                await redis_client.delete(lock_key)
+            break
+        else:
+            await asyncio.sleep(0.1)
 
 
 class UserRepository:
@@ -140,81 +162,85 @@ class UserRepository:
 # === Методы для управления балансом и транзакциями ===
     async def apply_balance_transaction(self, telegram_id: int, amount: int, reason: str) -> User | None:
         """Применить транзакцию баланса в атомарной операции."""
+        
         logger.info(f"Applying balance transaction for user {telegram_id}: {amount} ({reason})")
-        # Получаем пользователя
-        result = await self.session.execute(
-            select(User).where(User.telegram_id == telegram_id)
-        )
-        user = result.scalars().first()
-        if not user:
-            return None
         
-        # Проверяем баланс
-        new_balance = user.balance + amount
-        if new_balance < 0:
-            return None
-        
-        # Обновляем баланс
-        user.balance = new_balance
-        
-        # Добавляем запись о транзакции
-        transaction = Transaction(
-            user_id=telegram_id,
-            amount=amount,
-            balance_after=new_balance,
-            reason=reason,
-        )
-        self.session.add(transaction)
-        logger.info(f"Transaction added for user {telegram_id}: {amount} ({reason}), new balance: {new_balance}")
-        
-        # Обновляем статистику
-        await self.statistics_repository.increment_fields(
-            telegram_id,
-            transactions=1,
-            spent_crystals=abs(amount) if amount < 0 else 0,
-            earned_crystals_via_referrals=amount if amount > 0 and "Рефераль" in reason else 0,
-        )
-        logger.info(f"Statistics updated for user {telegram_id}: transactions +1, spent_crystals +{abs(amount) if amount < 0 else 0}, earned_crystals_via_referrals +{amount if amount > 0 and 'Рефераль' in reason else 0}")
-        
-        # Записываем в БД (вызывающий код должен вызвать session.commit())
-        await self.session.flush()
+        async with lock(telegram_id):
+            # Получаем пользователя
+            result = await self.session.execute(
+                select(User).where(User.telegram_id == telegram_id).with_for_update()
+            )
+            user = result.scalars().first()
+            if not user:
+                return None
+            
+            # Проверяем баланс
+            new_balance = user.balance + amount
+            if new_balance < 0:
+                return None
+            
+            # Обновляем баланс
+            user.balance = new_balance
+            
+            # Добавляем запись о транзакции
+            transaction = Transaction(
+                user_id=telegram_id,
+                amount=amount,
+                balance_after=new_balance,
+                reason=reason,
+            )
+            self.session.add(transaction)
+            logger.info(f"Transaction added for user {telegram_id}: {amount} ({reason}), new balance: {new_balance}")
+            
+            # Обновляем статистику
+            await self.statistics_repository.increment_fields(
+                telegram_id,
+                transactions=1,
+                spent_crystals=abs(amount) if amount < 0 else 0,
+                earned_crystals_via_referrals=amount if amount > 0 and "Рефераль" in reason else 0,
+            )
+            logger.info(f"Statistics updated for user {telegram_id}: transactions +1, spent_crystals +{abs(amount) if amount < 0 else 0}, earned_crystals_via_referrals +{amount if amount > 0 and 'Рефераль' in reason else 0}")
+            
+            # Записываем в БД (вызывающий код должен вызвать session.commit())
+            await self.session.flush()
         return user
     
     async def apply_daily_bonus(self, telegram_id: int) -> tuple[int, str]:
         """Применить ежедневный бонус пользователю."""
-        result = await self._calculate_daily_bonus(telegram_id)
-        if result is None:
-            return 0, "Пользователь не найден"
-        
-        bonus, days_active = result
-        if bonus == 0:
-            return 0, "Ежедневный бонус уже получен сегодня"
-        
-        # Применяем бонус только один раз
-        await self.apply_balance_transaction(
-            telegram_id, 
-            bonus, 
-            f"Ежедневный бонус за {days_active} дней активности"
-        )
-        
-        # Обновляем дату последнего получения бонуса
-        stats = await self.statistics_repository.get_statistics_by_user_id(telegram_id)
-        if stats:
-            now = datetime.utcnow()
-            # Проверяем пропуск дня: если последний бонус был более чем 24 часа назад (и это не первый бонус)
-            # то сбрасываем счетчик дней активности
-            should_reset_streak = False
-            if stats.last_bonus:
-                time_since_last_bonus = (now - stats.last_bonus).total_seconds()
-                # Если прошло более 24 часов, значит пропустили день
-                if time_since_last_bonus > 86400:
-                    should_reset_streak = True
+        async with lock(telegram_id):
+            result = await self._calculate_daily_bonus(telegram_id)
+            if result is None:
+                return 0, "Пользователь не найден"
             
-            await self.statistics_repository.increment_fields(
-                telegram_id,
-                last_bonus=now,
-                last_activity_track_start=now if should_reset_streak else stats.last_activity_track_start
+            bonus, days_active = result
+            if bonus == 0:
+                return 0, "Ежедневный бонус уже получен сегодня"
+        
+            # Применяем бонус только один раз
+            await self.apply_balance_transaction(
+                telegram_id, 
+                bonus, 
+                f"Ежедневный бонус за {days_active} дней активности"
             )
+            
+            # Обновляем дату последнего получения бонуса
+            stats = await self.statistics_repository.get_statistics_by_user_id(telegram_id)
+            if stats:
+                now = datetime.utcnow()
+                # Проверяем пропуск дня: если последний бонус был более чем 24 часа назад (и это не первый бонус)
+                # то сбрасываем счетчик дней активности
+                should_reset_streak = False
+                if stats.last_bonus:
+                    time_since_last_bonus = (now - stats.last_bonus).total_seconds()
+                    # Если прошло более 24 часов, значит пропустили день
+                    if time_since_last_bonus > 86400:
+                        should_reset_streak = True
+                
+                await self.statistics_repository.increment_fields(
+                    telegram_id,
+                    last_bonus=now,
+                    last_activity_track_start=now if should_reset_streak else stats.last_activity_track_start
+                )
         
         return bonus, f"Ежедневный бонус в размере {bonus} кристаллов за {days_active} дней активности"
 
