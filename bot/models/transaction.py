@@ -17,4 +17,5 @@ class Transaction(Base):
     amount = Column(Integer, nullable=False)
     balance_after = Column(Integer, nullable=False)
     reason = Column(String, nullable=False)
+    payment_charge_id = Column(String, nullable=True, unique=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)

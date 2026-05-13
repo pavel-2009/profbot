@@ -50,9 +50,20 @@ class UserService:
         return await self.user_repository.get_user_by_telegram_id(telegram_id)
 
 # === Методы для работы с балансом и бонусами ===
-    async def apply_balance_transaction(self, telegram_id: int, amount: int, reason: str) -> User | None:
+    async def apply_balance_transaction(
+        self,
+        telegram_id: int,
+        amount: int,
+        reason: str,
+        payment_charge_id: str | None = None,
+    ) -> User | None:
         """Единая операция изменения баланса."""
-        result = await self.user_repository.apply_balance_transaction(telegram_id, amount, reason)
+        result = await self.user_repository.apply_balance_transaction(
+            telegram_id,
+            amount,
+            reason,
+            payment_charge_id=payment_charge_id,
+        )
         await self.user_repository.session.commit()
         return result
     

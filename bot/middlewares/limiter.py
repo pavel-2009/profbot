@@ -3,14 +3,14 @@
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 
-import redis.asyncio as aioredis
 from bot.core.config import config
+from bot.core.redis import get_redis_client
 
 
 class RateLimiterMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Message, data):
         user_id = event.from_user.id
-        redis_client = aioredis.from_url(config.REDIS_URL)
+        redis_client = get_redis_client()
         
         # Получаем текущее количество запросов для пользователя
         current_count = await redis_client.get(f"rate_limit:{user_id}")

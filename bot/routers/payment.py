@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import redis.asyncio as aioredis
 
 from aiogram import F, Router
 from aiogram.types import (
@@ -18,11 +17,12 @@ from bot.core.config import config
 from bot.core.db import async_session_factory
 from bot.dependencies import get_user_service
 from bot.services.user_service import UserService
+from bot.core.redis import get_redis_client
 
 
 router = Router()
 logger = logging.getLogger(__name__)
-redis_client = aioredis.from_url(config.REDIS_URL)
+redis_client = get_redis_client()
 ALLOWED_TOP_UP_AMOUNTS = {100, 200, 500, 1000, 2000, 5000, 10000}
 MAX_TOP_UP_RETRIES = 3
 TOP_UP_RETRY_DELAY_SECONDS = 1
@@ -160,6 +160,7 @@ async def handle_successful_payment(message: Message) -> None:
                     user_id,
                     amount,
                     reason="Пополнение баланса через Telegram Payments",
+                    payment_charge_id=payment.telegram_payment_charge_id,
                 )
 
                 if updated_user is None:

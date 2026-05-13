@@ -29,13 +29,16 @@ async def main() -> None:
     logger.info("Starting bot...")
     
     # Инициализация базы данных
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}", exc_info=True)
-        raise
+    if config.AUTO_CREATE_TABLES:
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}", exc_info=True)
+            raise
+    else:
+        logger.info("AUTO_CREATE_TABLES disabled: skipping Base.metadata.create_all")
     
     # Инициализация бота и диспетчера
     bot: Bot = Bot(token=config.BOT_TOKEN)
