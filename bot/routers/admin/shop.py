@@ -11,6 +11,7 @@ from bot.core.db import async_session_factory
 from bot.dependencies import get_shop_service
 from bot.routers.shop import get_shop_text, get_shop_pages
 from bot.middlewares.admin import AdminMiddleware
+from bot.core.redis import redis_lock
 
 logger = logging.getLogger(__name__)
 
@@ -119,10 +120,14 @@ async def shop_page(callback: CallbackQuery) -> None:
 async def shop_edit(callback: CallbackQuery, state: FSMContext) -> None:
     """Начало редактирования товара."""
     product_id = int(callback.data.split(":")[1])
-    
-    async with async_session_factory() as session:
-        shop_service = get_shop_service(session)
-        product = await shop_service.get_product_by_id(product_id)
+    async with redis_lock(f"admin:shop_edit:{callback.from_user.id}:{product_id}") as acquired:
+        if not acquired:
+            await callback.answer("⏳ Запрос уже обрабатывается")
+            return
+
+        async with async_session_factory() as session:
+            shop_service = get_shop_service(session)
+            product = await shop_service.get_product_by_id(product_id)
     
     if not product:
         await callback.message.answer("Товар не найден.")
@@ -194,10 +199,14 @@ async def process_new_value(message: Message, state: FSMContext) -> None:
         new_value = message.text
     
     try:
-        async with async_session_factory() as session:
-            shop_service = get_shop_service(session)
-            update_data = {field: new_value}
-            product = await shop_service.update_product(product_id, **update_data)
+        async with redis_lock(f"admin:product_update:{message.from_user.id}:{product_id}") as acquired:
+            if not acquired:
+                await message.answer("⏳ Изменение уже обрабатывается")
+                return
+            async with async_session_factory() as session:
+                shop_service = get_shop_service(session)
+                update_data = {field: new_value}
+                product = await shop_service.update_product(product_id, **update_data)
             
             if product:
                 logger.info(f"Product {product_id} field '{field}' updated")

@@ -27,6 +27,7 @@ class Config(BaseSettings):
     RATE_LIMIT_TIME: int = 60  # Время в секундах для сброса счетчика запросов
     
     ADMINS: list[int] = []
+    AUTO_CREATE_TABLES: bool = True
 
     model_config = {
         "env_file": ".env",

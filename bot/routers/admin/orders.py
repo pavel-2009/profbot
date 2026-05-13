@@ -5,8 +5,10 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from aiogram.filters import Command
 
 from bot.middlewares.admin import AdminMiddleware
+from bot.core.redis import redis_lock
 from bot.dependencies import get_shop_service
 from bot.core.db import async_session_factory
+from bot.core.redis import redis_lock
 from bot.models.order import Order
 
 
@@ -107,9 +109,13 @@ async def complete_order(callback_query: CallbackQuery) -> None:
     """Обрабатывает нажатие кнопки "Завершить" и завершает заказ."""
     
     order_id = int(callback_query.data.split("_")[-1])
-    
-    async with async_session_factory() as session:
-        shop_service = get_shop_service(session)
-        await shop_service.complete_order(order_id)
+    async with redis_lock(f"admin:complete_order:{callback_query.from_user.id}:{order_id}") as acquired:
+        if not acquired:
+            await callback_query.answer("⏳ Заказ уже обрабатывается")
+            return
+
+        async with async_session_factory() as session:
+            shop_service = get_shop_service(session)
+            await shop_service.complete_order(order_id)
     
     await callback_query.message.answer(f"Заказ {order_id} завершен.")

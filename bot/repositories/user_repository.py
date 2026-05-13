@@ -7,7 +7,6 @@ from datetime import datetime
 import asyncio
 from contextlib import asynccontextmanager
 
-import redis.asyncio as aioredis
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,10 +17,11 @@ from bot.schemas import TransactionSchema, UserProfileSchema, UserStatsSchema
 from bot.repositories.statistics_repository import StatisticsRepository
 from bot.repositories.transaction_repository import TransactionRepository
 from bot.core.config import config
+from bot.core.redis import get_redis_client
 
 logger = logging.getLogger(__name__)
 
-redis_client = aioredis.from_url(config.REDIS_URL)
+redis_client = get_redis_client()
 
 REFERRAL_BONUS = 50
 REGISTRATION_BONUS = 100
@@ -160,7 +160,13 @@ class UserRepository:
         return stats.last_bonus if stats else None
     
 # === Методы для управления балансом и транзакциями ===
-    async def apply_balance_transaction(self, telegram_id: int, amount: int, reason: str) -> User | None:
+    async def apply_balance_transaction(
+        self,
+        telegram_id: int,
+        amount: int,
+        reason: str,
+        payment_charge_id: str | None = None,
+    ) -> User | None:
         """Применить транзакцию баланса в атомарной операции."""
         
         logger.info(f"Applying balance transaction for user {telegram_id}: {amount} ({reason})")
@@ -182,12 +188,21 @@ class UserRepository:
             # Обновляем баланс
             user.balance = new_balance
             
+            if payment_charge_id:
+                existing_tx = await self.session.execute(
+                    select(Transaction).where(Transaction.payment_charge_id == payment_charge_id)
+                )
+                if existing_tx.scalars().first() is not None:
+                    logger.warning("Duplicate payment_charge_id detected", extra={"payment_charge_id": payment_charge_id})
+                    return user
+
             # Добавляем запись о транзакции
             transaction = Transaction(
                 user_id=telegram_id,
                 amount=amount,
                 balance_after=new_balance,
                 reason=reason,
+                payment_charge_id=payment_charge_id,
             )
             self.session.add(transaction)
             logger.info(f"Transaction added for user {telegram_id}: {amount} ({reason}), new balance: {new_balance}")
