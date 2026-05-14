@@ -5,7 +5,6 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.core.db import async_session_factory
-from bot.core.config import config
 from bot.dependencies import get_shop_service
 from bot.models.product import DeliveryType, Product
 
@@ -111,16 +110,7 @@ async def shop_buy(callback: types.CallbackQuery) -> None:
         
         if product and product.delivery_type == DeliveryType.MANUAL:
             await callback.message.answer(f"Покупка товара '{product.name}' оформлена. Ожидайте доставки от администратора.")
-            for admin_id in config.ADMINS:
-                await callback.bot.send_message(
-                    admin_id,
-                    (
-                        "🔔 Новый manual-заказ\n"
-                        f"Пользователь: {callback.from_user.id}\n"
-                        f"Товар: {product.name} (ID: {product.id})\n"
-                        "Проверьте /orders"
-                    ),
-                )
+            await shop_service.notify_admins_about_new_order(callback.bot, callback.from_user.id, product)
             return
         
         return
